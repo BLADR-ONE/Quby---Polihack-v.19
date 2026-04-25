@@ -22,10 +22,10 @@ export const PROFILE_ORDER: ProfileKey[] = [
 export const PROFILES: Record<ProfileKey, QubyProfile> = {
   baby: {
     name: 'Baby Mode',
-    description: 'Sensitive thresholds for babies and children.',
+    description: 'Sensitive limits for babies and small children.',
     tempMin: 20,
     tempMax: 24,
-    humidityMin: 35,
+    humidityMin: 40,
     humidityMax: 50,
     co2Max: 800,
     pm25Max: 15,
@@ -33,7 +33,7 @@ export const PROFILES: Record<ProfileKey, QubyProfile> = {
 
   elderly: {
     name: 'Elderly Mode',
-    description: 'Clear alerts for elderly and vulnerable users.',
+    description: 'Comfort-focused limits for elderly people.',
     tempMin: 20,
     tempMax: 25,
     humidityMin: 35,
@@ -44,7 +44,7 @@ export const PROFILES: Record<ProfileKey, QubyProfile> = {
 
   asthma: {
     name: 'Asthma Mode',
-    description: 'More sensitive alerts for air quality and particles.',
+    description: 'More sensitive mode for respiratory comfort.',
     tempMin: 19,
     tempMax: 24,
     humidityMin: 35,
@@ -55,7 +55,7 @@ export const PROFILES: Record<ProfileKey, QubyProfile> = {
 
   allergies: {
     name: 'Allergy Mode',
-    description: 'Focused on humidity and particle levels.',
+    description: 'Focused on humidity and particle sensitivity.',
     tempMin: 19,
     tempMax: 25,
     humidityMin: 30,

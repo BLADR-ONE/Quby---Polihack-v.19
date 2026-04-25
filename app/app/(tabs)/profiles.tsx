@@ -1,71 +1,196 @@
-export type ProfileKey = 'baby' | 'elderly' | 'asthma' | 'allergies' | 'normal';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export type QubyProfile = {
-  name: string;
-  description: string;
-  tempMin: number;
-  tempMax: number;
-  humidityMin: number;
-  humidityMax: number;
-  airQualityMax: number;
-};
+import { PROFILE_ORDER, ProfileKey, PROFILES } from '../../constants/profiles';
+import { useQuby } from '../../context/QubyContext';
 
-export const PROFILE_ORDER: ProfileKey[] = [
-  'baby',
-  'elderly',
-  'asthma',
-  'allergies',
-  'normal',
-];
+export default function ProfilesScreen() {
+  const { activeProfile, setActiveProfile } = useQuby();
 
-export const PROFILES: Record<ProfileKey, QubyProfile> = {
-  baby: {
-    name: 'Baby Mode',
-    description: 'Sensitive comfort thresholds for babies and children.',
-    tempMin: 20,
-    tempMax: 24,
-    humidityMin: 35,
-    humidityMax: 50,
-    airQualityMax: 300,
+  return (
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>Health Profiles</Text>
+      <Text style={styles.subtitle}>
+        Select the sensitivity mode based on the person in the room.
+      </Text>
+
+      {PROFILE_ORDER.map((key: ProfileKey) => {
+        const profile = PROFILES[key];
+        const isSelected = activeProfile === key;
+
+        return (
+          <TouchableOpacity
+            key={key}
+            style={[styles.profileCard, isSelected && styles.selectedCard]}
+            onPress={() => setActiveProfile(key)}
+          >
+            <View style={styles.profileHeader}>
+              <View style={styles.profileTextBox}>
+                <Text style={styles.profileName}>{profile.name}</Text>
+                <Text style={styles.profileDescription}>
+                  {profile.description}
+                </Text>
+              </View>
+
+              {isSelected && (
+                <View style={styles.activeBadge}>
+                  <Text style={styles.activeBadgeText}>ACTIVE</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.parametersBox}>
+              <Text style={styles.parametersTitle}>Recommended limits</Text>
+
+              <View style={styles.parameterRow}>
+                <Text style={styles.parameterLabel}>Temperature</Text>
+                <Text style={styles.parameterValue}>
+                  {profile.tempMin}°C - {profile.tempMax}°C
+                </Text>
+              </View>
+
+              <View style={styles.parameterRow}>
+                <Text style={styles.parameterLabel}>Humidity</Text>
+                <Text style={styles.parameterValue}>
+                  {profile.humidityMin}% - {profile.humidityMax}%
+                </Text>
+              </View>
+
+              <View style={styles.parameterRow}>
+                <Text style={styles.parameterLabel}>CO₂</Text>
+                <Text style={styles.parameterValue}>
+                  max {profile.co2Max} ppm
+                </Text>
+              </View>
+
+              <View style={styles.parameterRow}>
+                <Text style={styles.parameterLabel}>PM2.5 particles</Text>
+                <Text style={styles.parameterValue}>
+                  max {profile.pm25Max} µg/m³
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        );
+      })}
+
+      <View style={styles.infoCard}>
+        <Text style={styles.infoTitle}>Note</Text>
+        <Text style={styles.infoText}>
+          These modes are not medical diagnoses. They only adjust alert sensitivity for temperature, humidity, CO₂ and particle levels.
+        </Text>
+      </View>
+
+      <View style={styles.bottomSpace} />
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#F4F8FB',
   },
-
-  elderly: {
-    name: 'Elderly Mode',
-    description: 'Clear alerts for elderly and vulnerable users.',
-    tempMin: 20,
-    tempMax: 25,
-    humidityMin: 35,
-    humidityMax: 55,
-    airQualityMax: 350,
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    marginTop: 30,
+    color: '#1E293B',
   },
-
-  asthma: {
-    name: 'Asthma Mode',
-    description: 'More sensitive alerts for air quality and humidity.',
-    tempMin: 19,
-    tempMax: 24,
-    humidityMin: 35,
-    humidityMax: 50,
-    airQualityMax: 250,
+  subtitle: {
+    fontSize: 15,
+    color: '#64748B',
+    marginBottom: 20,
+    lineHeight: 21,
   },
-
-  allergies: {
-    name: 'Allergy Mode',
-    description: 'Focused on humidity, VOC, smoke and mold-risk conditions.',
-    tempMin: 19,
-    tempMax: 25,
-    humidityMin: 30,
-    humidityMax: 50,
-    airQualityMax: 280,
+  profileCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 18,
+    borderRadius: 20,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
   },
-
-  normal: {
-    name: 'Normal Mode',
-    description: 'Standard indoor air quality monitoring.',
-    tempMin: 18,
-    tempMax: 26,
-    humidityMin: 30,
-    humidityMax: 60,
-    airQualityMax: 500,
+  selectedCard: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#2563EB',
   },
-};
+  profileHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  profileTextBox: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 5,
+  },
+  profileDescription: {
+    fontSize: 14,
+    color: '#64748B',
+    lineHeight: 20,
+  },
+  activeBadge: {
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    height: 30,
+  },
+  activeBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  parametersBox: {
+    marginTop: 16,
+    backgroundColor: '#F8FAFC',
+    padding: 14,
+    borderRadius: 16,
+  },
+  parametersTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#334155',
+    marginBottom: 10,
+  },
+  parameterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  parameterLabel: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  parameterValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  infoCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 18,
+    borderRadius: 18,
+    marginTop: 8,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 6,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#475569',
+    lineHeight: 20,
+  },
+  bottomSpace: {
+    height: 40,
+  },
+});
