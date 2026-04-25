@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -8,6 +9,11 @@ import {
 } from 'react-native';
 
 import { useQuby } from '../../context/QubyContext';
+
+import {
+  notifyHighCo2,
+  requestNotificationPermission,
+} from '../../utils/notifications';
 
 export default function DashboardScreen() {
   const {
@@ -17,6 +23,16 @@ export default function DashboardScreen() {
     alerts,
     recommendation,
   } = useQuby();
+
+  const isCo2High = reading.co2 > 1000;
+
+  useEffect(() => {
+    requestNotificationPermission();
+  }, []);
+
+  useEffect(() => {
+    notifyHighCo2(reading.co2);
+  }, [reading.co2]);
 
   const statusCardStyle =
     status === 'SAFE'
@@ -36,7 +52,7 @@ export default function DashboardScreen() {
     <View style={styles.screen}>
       <View style={styles.fixedHero}>
         <Image
-          source={require('../../assets/images/logowide.png')}
+          source={require('../../assets/images/logo.png')}
           style={styles.heroLogo}
           resizeMode="contain"
         />
@@ -60,7 +76,17 @@ export default function DashboardScreen() {
 
           <View style={styles.infoCard}>
             <Text style={styles.infoTitle}>Active Profile</Text>
-            <Text style={styles.infoText}>{activeProfileData.name}</Text>
+
+            <View style={styles.profileRow}>
+              <Text style={styles.profileIcon}>{activeProfileData.icon}</Text>
+
+              <View style={styles.profileTextBox}>
+                <Text style={styles.profileName}>{activeProfileData.name}</Text>
+                <Text style={styles.infoText}>
+                  {activeProfileData.description}
+                </Text>
+              </View>
+            </View>
           </View>
 
           <Text style={styles.sectionTitle}>Live Sensor Data</Text>
@@ -76,9 +102,37 @@ export default function DashboardScreen() {
               <Text style={styles.sensorValue}>{reading.humidity}%</Text>
             </View>
 
-            <View style={styles.sensorCard}>
+            <View style={isCo2High ? styles.co2AlertCard : styles.sensorCard}>
               <Text style={styles.sensorTitle}>CO₂</Text>
-              <Text style={styles.sensorValue}>{reading.co2} ppm</Text>
+
+              <Text style={isCo2High ? styles.co2AlertValue : styles.sensorValue}>
+                {reading.co2} ppm
+              </Text>
+
+              {isCo2High ? (
+                <View style={styles.co2NotificationBox}>
+                  <Text style={styles.co2NotificationTitle}>
+                    Quby air alert
+                  </Text>
+
+                  <Text style={styles.co2NotificationText}>
+                    CO₂ is high. Open the window.
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.co2GoodText}>
+                  CO₂ level is normal.
+                </Text>
+              )}
+
+              <Pressable
+                style={styles.notificationButton}
+                onPress={requestNotificationPermission}
+              >
+                <Text style={styles.notificationButtonText}>
+                  Enable notifications
+                </Text>
+              </Pressable>
             </View>
 
             <View style={styles.sensorCard}>
@@ -260,6 +314,27 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+
+  profileIcon: {
+    fontSize: 34,
+  },
+
+  profileTextBox: {
+    flex: 1,
+  },
+
+  profileName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 3,
+  },
+
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -274,6 +349,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
+  co2AlertCard: {
+    width: '48%',
+    backgroundColor: '#FEF2F2',
+    padding: 18,
+    borderRadius: 18,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+
   sensorTitle: {
     fontSize: 14,
     color: '#64748B',
@@ -284,6 +369,56 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     color: '#0F172A',
+  },
+
+  co2AlertValue: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#DC2626',
+  },
+
+  co2NotificationBox: {
+    backgroundColor: '#FFFFFF',
+    padding: 10,
+    borderRadius: 12,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+
+  co2NotificationTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#991B1B',
+    marginBottom: 3,
+  },
+
+  co2NotificationText: {
+    fontSize: 12,
+    color: '#DC2626',
+    fontWeight: '700',
+    lineHeight: 17,
+  },
+
+  co2GoodText: {
+    fontSize: 12,
+    color: '#15803D',
+    fontWeight: '700',
+    marginTop: 8,
+  },
+
+  notificationButton: {
+    backgroundColor: '#0F172A',
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+
+  notificationButtonText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
   },
 
   alertText: {

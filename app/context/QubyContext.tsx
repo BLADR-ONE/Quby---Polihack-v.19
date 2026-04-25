@@ -90,7 +90,7 @@ function evaluateReading(reading: SensorReading, profile: QubyProfile) {
 }
 
 export function QubyProvider({ children }: { children: React.ReactNode }) {
-  const [activeProfile, setActiveProfile] = useState<ProfileKey>('normal');
+  const [activeProfile, setActiveProfile] = useState<ProfileKey>('adult');
 
   const activeProfileData = PROFILES[activeProfile];
   const reading = mockReading;

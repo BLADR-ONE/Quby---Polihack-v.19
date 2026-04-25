@@ -25,11 +25,17 @@ export default function ProfilesScreen() {
             onPress={() => setActiveProfile(key)}
           >
             <View style={styles.profileHeader}>
-              <View style={styles.profileTextBox}>
-                <Text style={styles.profileName}>{profile.name}</Text>
-                <Text style={styles.profileDescription}>
-                  {profile.description}
-                </Text>
+              <View style={styles.profileMainInfo}>
+                <View style={styles.iconBox}>
+                  <Text style={styles.profileIcon}>{profile.icon}</Text>
+                </View>
+
+                <View style={styles.profileTextBox}>
+                  <Text style={styles.profileName}>{profile.name}</Text>
+                  <Text style={styles.profileDescription}>
+                    {profile.description}
+                  </Text>
+                </View>
               </View>
 
               {isSelected && (
@@ -64,9 +70,16 @@ export default function ProfilesScreen() {
               </View>
 
               <View style={styles.parameterRow}>
-                <Text style={styles.parameterLabel}>PM2.5 particles</Text>
+                <Text style={styles.parameterLabel}>Fumes particles</Text>
                 <Text style={styles.parameterValue}>
                   max {profile.pm25Max} µg/m³
+                </Text>
+              </View>
+
+              <View style={styles.parameterRow}>
+                <Text style={styles.parameterLabel}>Smoke particles</Text>
+                <Text style={styles.parameterValue}>
+                  max {profile.pm10Max} µg/m³
                 </Text>
               </View>
             </View>
@@ -92,18 +105,21 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#F4F8FB',
   },
+
   title: {
     fontSize: 28,
     fontWeight: '800',
     marginTop: 30,
     color: '#1E293B',
   },
+
   subtitle: {
     fontSize: 15,
     color: '#64748B',
     marginBottom: 20,
     lineHeight: 21,
   },
+
   profileCard: {
     backgroundColor: '#FFFFFF',
     padding: 18,
@@ -112,29 +128,55 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#E2E8F0',
   },
+
   selectedCard: {
     backgroundColor: '#EFF6FF',
     borderColor: '#2563EB',
   },
+
   profileHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
   },
+
+  profileMainInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+
+  iconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: '#E0F2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  profileIcon: {
+    fontSize: 28,
+  },
+
   profileTextBox: {
     flex: 1,
   },
+
   profileName: {
     fontSize: 20,
     fontWeight: '800',
     color: '#0F172A',
     marginBottom: 5,
   },
+
   profileDescription: {
     fontSize: 14,
     color: '#64748B',
     lineHeight: 20,
   },
+
   activeBadge: {
     backgroundColor: '#2563EB',
     paddingHorizontal: 10,
@@ -142,54 +184,64 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     height: 30,
   },
+
   activeBadgeText: {
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '800',
   },
+
   parametersBox: {
     marginTop: 16,
     backgroundColor: '#F8FAFC',
     padding: 14,
     borderRadius: 16,
   },
+
   parametersTitle: {
     fontSize: 14,
     fontWeight: '800',
     color: '#334155',
     marginBottom: 10,
   },
+
   parameterRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
   },
+
   parameterLabel: {
     fontSize: 13,
     color: '#64748B',
   },
+
   parameterValue: {
     fontSize: 13,
     fontWeight: '700',
     color: '#0F172A',
   },
+
   infoCard: {
     backgroundColor: '#FFFFFF',
     padding: 18,
     borderRadius: 18,
     marginTop: 8,
   },
+
   infoTitle: {
     fontSize: 16,
     fontWeight: '800',
     color: '#0F172A',
     marginBottom: 6,
   },
+
   infoText: {
     fontSize: 14,
     color: '#475569',
     lineHeight: 20,
   },
+
   bottomSpace: {
     height: 40,
   },
