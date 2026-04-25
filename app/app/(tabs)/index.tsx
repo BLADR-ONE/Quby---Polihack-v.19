@@ -136,13 +136,13 @@ export default function DashboardScreen() {
             </View>
 
             <View style={styles.sensorCard}>
-              <Text style={styles.sensorTitle}>PM2.5</Text>
-              <Text style={styles.sensorValue}>{reading.pm25} µg/m³</Text>
+              <Text style={styles.sensorTitle}>Fumes</Text>
+              <Text style={styles.sensorValue}>{reading.fumes} µg/m³</Text>
             </View>
 
             <View style={styles.sensorCard}>
-              <Text style={styles.sensorTitle}>PM10</Text>
-              <Text style={styles.sensorValue}>{reading.pm10} µg/m³</Text>
+              <Text style={styles.sensorTitle}>Smoke</Text>
+              <Text style={styles.sensorValue}>{reading.smoke} µg/m³</Text>
             </View>
 
             <View style={styles.sensorCard}>
@@ -182,7 +182,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F4F8FB',
+    backgroundColor: '#FFFFFF',
   },
 
   fixedHero: {
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     height: 170,
-    backgroundColor: '#CFFAFE',
+    backgroundColor: '#81D8D0',
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   },
 
   contentPanel: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F0F0F0',
     padding: 20,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,

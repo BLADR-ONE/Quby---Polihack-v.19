@@ -1,10 +1,12 @@
+
 export type ProfileKey =
   | 'baby'
   | 'kid'
+  | 'adult'
   | 'elderly'
   | 'asthma'
-  | 'allergies'
-  | 'adult';
+  | 'allergies';
+
 
 export type QubyProfile = {
   name: string;
@@ -15,17 +17,17 @@ export type QubyProfile = {
   humidityMin: number;
   humidityMax: number;
   co2Max: number;
-  pm25Max: number;
-  pm10Max: number;
+  fumesMax: number;
+  smokeMax: number;
 };
 
 export const PROFILE_ORDER: ProfileKey[] = [
   'baby',
   'kid',
+  'adult',
   'elderly',
   'asthma',
   'allergies',
-  'adult',
 ];
 
 export const PROFILES: Record<ProfileKey, QubyProfile> = {
@@ -38,8 +40,8 @@ export const PROFILES: Record<ProfileKey, QubyProfile> = {
     humidityMin: 40,
     humidityMax: 50,
     co2Max: 800,
-    pm25Max: 15,
-    pm10Max: 35,
+    fumesMax: 15,
+    smokeMax: 35,
   },
 
   kid: {
@@ -51,8 +53,8 @@ export const PROFILES: Record<ProfileKey, QubyProfile> = {
     humidityMin: 40,
     humidityMax: 60,
     co2Max: 1000,
-    pm25Max: 15,
-    pm10Max: 45,
+    fumesMax: 15,
+    smokeMax: 45,
   },
 
   elderly: {
@@ -64,8 +66,8 @@ export const PROFILES: Record<ProfileKey, QubyProfile> = {
     humidityMin: 35,
     humidityMax: 55,
     co2Max: 900,
-    pm25Max: 20,
-    pm10Max: 45,
+    fumesMax: 20,
+    smokeMax: 45,
   },
 
   asthma: {
@@ -77,8 +79,8 @@ export const PROFILES: Record<ProfileKey, QubyProfile> = {
     humidityMin: 35,
     humidityMax: 50,
     co2Max: 750,
-    pm25Max: 12,
-    pm10Max: 35,
+    fumesMax: 12,
+    smokeMax: 35,
   },
 
   allergies: {
@@ -90,8 +92,8 @@ export const PROFILES: Record<ProfileKey, QubyProfile> = {
     humidityMin: 30,
     humidityMax: 50,
     co2Max: 850,
-    pm25Max: 15,
-    pm10Max: 40,
+    fumesMax: 15,
+    smokeMax: 40,
   },
 
   adult: {
@@ -103,7 +105,7 @@ export const PROFILES: Record<ProfileKey, QubyProfile> = {
     humidityMin: 30,
     humidityMax: 60,
     co2Max: 1000,
-    pm25Max: 25,
-    pm10Max: 50,
+    fumesMax: 25,
+    smokeMax: 50,
   },
 };

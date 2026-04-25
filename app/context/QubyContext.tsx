@@ -6,8 +6,8 @@ type SensorReading = {
   temperature: number;
   humidity: number;
   co2: number;
-  pm25: number;
-  pm10: number;
+  fumes: number;
+  smoke: number;
   particlesStatus: string;
 };
 
@@ -29,8 +29,8 @@ const mockReading: SensorReading = {
   temperature: 23,
   humidity: 56,
   co2: 820,
-  pm25: 18,
-  pm10: 35,
+  fumes: 18,
+  smoke: 35,
   particlesStatus: 'Moderate',
 };
 
@@ -63,12 +63,12 @@ function evaluateReading(reading: SensorReading, profile: QubyProfile) {
     status = 'WARNING';
   }
 
-  if (reading.pm25 > profile.pm25Max) {
+  if (reading.fumes > profile.fumesMax) {
     alerts.push('Particle level is too high for this profile.');
     status = 'WARNING';
   }
 
-  if (reading.co2 > profile.co2Max + 500 || reading.pm25 > profile.pm25Max + 25) {
+  if (reading.co2 > profile.co2Max + 500 || reading.fumes > profile.fumesMax + 25) {
     status = 'CRITICAL';
   }
 

@@ -42,10 +42,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#F4F8FB',
+    backgroundColor: '#F0F0F0',
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '800',
     marginTop: 30,
     color: '#1E293B',

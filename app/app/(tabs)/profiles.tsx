@@ -11,7 +11,7 @@ export default function ProfilesScreen() {
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Health Profiles</Text>
       <Text style={styles.subtitle}>
-        Select the sensitivity mode based on the person in the room.
+        Select the sensitivity mode based on the room's occupant.
       </Text>
 
       {PROFILE_ORDER.map((key: ProfileKey) => {
@@ -72,14 +72,14 @@ export default function ProfilesScreen() {
               <View style={styles.parameterRow}>
                 <Text style={styles.parameterLabel}>Fumes particles</Text>
                 <Text style={styles.parameterValue}>
-                  max {profile.pm25Max} µg/m³
+                  max {profile.fumesMax} µg/m³
                 </Text>
               </View>
 
               <View style={styles.parameterRow}>
                 <Text style={styles.parameterLabel}>Smoke particles</Text>
                 <Text style={styles.parameterValue}>
-                  max {profile.pm10Max} µg/m³
+                  max {profile.smokeMax} µg/m³
                 </Text>
               </View>
             </View>
@@ -103,11 +103,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#F4F8FB',
+    backgroundColor: '#F0F0F0',
   },
 
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '800',
     marginTop: 30,
     color: '#1E293B',
@@ -131,6 +131,7 @@ const styles = StyleSheet.create({
 
   selectedCard: {
     backgroundColor: '#EFF6FF',
+    borderWidth: 3,
     borderColor: '#2563EB',
   },
 
@@ -237,7 +238,7 @@ const styles = StyleSheet.create({
   },
 
   infoText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#475569',
     lineHeight: 20,
   },
