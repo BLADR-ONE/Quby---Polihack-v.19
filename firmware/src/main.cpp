@@ -1,8 +1,11 @@
 #include <Arduino.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <DHT.h>
+#include "app_config.h"
 
 namespace {
 constexpr uint8_t SDA_PIN = 8;
@@ -30,6 +33,9 @@ constexpr unsigned long WARMUP_MS = 20000;
 constexpr unsigned long BLINK_INTERVAL_MS = 4500;
 constexpr unsigned long BLINK_DURATION_MS = 120;
 constexpr unsigned long SHORT_PRESS_MAX_MS = 800;
+constexpr unsigned long WIFI_RECONNECT_MS = 15000;
+constexpr unsigned long WIFI_SCAN_MS = 30000;
+constexpr unsigned long DOCKED_UPLOAD_MS = 240000;
 
 constexpr float AIR_HAPPY_MAX = 1.20f;
 constexpr float AIR_NEUTRAL_MAX = 1.65f;
@@ -55,7 +61,20 @@ enum DockedScreen : uint8_t {
   SCREEN_FACE,
   SCREEN_MQ135,
   SCREEN_MQ2,
-  SCREEN_DHT
+  SCREEN_DHT,
+  SCREEN_WIFI
+};
+
+struct SensorSnapshot {
+  unsigned long timestampMs;
+  int mq135Raw;
+  float mq135Baseline;
+  float mq135Index;
+  bool mq2Detected;
+  float temperatureC;
+  float humidityPct;
+  Mode mode;
+  Mood mood;
 };
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
@@ -73,6 +92,11 @@ bool lastButtonPressed = false;
 bool longPressHandled = false;
 bool blinkActive = false;
 bool infoScreenDirty = true;
+bool wifiConfigured = false;
+bool wifiConnectAttempted = false;
+bool snapshotReady = false;
+bool wifiScanRequested = false;
+wl_status_t lastWifiStatus = WL_IDLE_STATUS;
 
 unsigned long pressStartMs = 0;
 unsigned long bootMs = 0;
@@ -81,6 +105,9 @@ unsigned long lastSensorReadMs = 0;
 unsigned long lastDhtReadMs = 0;
 unsigned long nextBlinkMs = 0;
 unsigned long blinkUntilMs = 0;
+unsigned long lastWifiAttemptMs = 0;
+unsigned long lastUploadMs = 0;
+unsigned long lastWifiScanMs = 0;
 
 int mq135Raw = 0;
 float mq135Baseline = 1.0f;
@@ -88,6 +115,11 @@ float mq135Index = 1.0f;
 bool mq2Detected = false;
 float dhtTemperatureC = NAN;
 float dhtHumidity = NAN;
+int wifiScanCount = -1;
+String wifiTopSsid1;
+String wifiTopSsid2;
+String wifiTopSsid3;
+SensorSnapshot latestSnapshot{};
 
 void setColor(uint8_t red, uint8_t green, uint8_t blue) {
   analogWrite(RED_PIN, red);
@@ -111,17 +143,9 @@ void applyMoodColor(Mood mood) {
 
 void drawTriangleEye(int cx, int cy, bool inverted) {
   if (inverted) {
-    display.fillTriangle(
-        cx - 15, cy - 12,
-        cx + 15, cy - 12,
-        cx, cy + 14,
-        SSD1306_WHITE);
+    display.fillTriangle(cx - 15, cy - 12, cx + 15, cy - 12, cx, cy + 14, SSD1306_WHITE);
   } else {
-    display.fillTriangle(
-        cx, cy - 14,
-        cx - 15, cy + 12,
-        cx + 15, cy + 12,
-        SSD1306_WHITE);
+    display.fillTriangle(cx, cy - 14, cx - 15, cy + 12, cx + 15, cy + 12, SSD1306_WHITE);
   }
 }
 
@@ -181,6 +205,41 @@ const __FlashStringHelper* moodLabel(Mood mood) {
   return F("UNKNOWN");
 }
 
+const __FlashStringHelper* wifiStatusLabel() {
+  if (!wifiConfigured) {
+    return F("OFF");
+  }
+  return WiFi.status() == WL_CONNECTED ? F("OK") : F("WAIT");
+}
+
+const __FlashStringHelper* wifiStatusDetail(wl_status_t status) {
+  switch (status) {
+    case WL_CONNECTED:
+      return F("CONNECTED");
+    case WL_NO_SSID_AVAIL:
+      return F("NO SSID");
+    case WL_CONNECT_FAILED:
+      return F("BAD PASS");
+    case WL_CONNECTION_LOST:
+      return F("LOST");
+    case WL_DISCONNECTED:
+      return F("DISCONNECTED");
+    case WL_IDLE_STATUS:
+      return F("IDLE");
+    default:
+      return F("UNKNOWN");
+  }
+}
+
+void drawInfoHeader(const __FlashStringHelper* title) {
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println(title);
+  display.drawLine(0, 10, SCREEN_WIDTH - 1, 10, SSD1306_WHITE);
+}
+
 void drawUndockedScreen() {
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
@@ -191,15 +250,6 @@ void drawUndockedScreen() {
   display.setCursor(22, 42);
   display.println(F("Docked logic paused"));
   display.display();
-}
-
-void drawInfoHeader(const __FlashStringHelper* title) {
-  display.clearDisplay();
-  display.setTextColor(SSD1306_WHITE);
-  display.setTextSize(1);
-  display.setCursor(0, 0);
-  display.println(title);
-  display.drawLine(0, 10, SCREEN_WIDTH - 1, 10, SSD1306_WHITE);
 }
 
 void drawMq135Screen() {
@@ -219,7 +269,9 @@ void drawMq135Screen() {
 
   display.setCursor(0, 52);
   display.print(F("Mood: "));
-  display.println(moodLabel(currentMood));
+  display.print(moodLabel(currentMood));
+  display.print(F(" W:"));
+  display.println(wifiStatusLabel());
   display.display();
 }
 
@@ -233,11 +285,12 @@ void drawMq2Screen() {
 
   display.setTextSize(1);
   display.setCursor(0, 46);
-  display.print(F("Digital pin: "));
+  display.print(F("Digital: "));
   display.println(mq2Detected ? F("HIGH") : F("LOW"));
 
   display.setCursor(0, 56);
-  display.println(F("Voltage divider active"));
+  display.print(F("WiFi: "));
+  display.println(wifiStatusLabel());
   display.display();
 }
 
@@ -258,10 +311,47 @@ void drawDhtScreen() {
     display.println(F(" %"));
 
     display.setCursor(0, 48);
-    display.print(F("Heat: "));
-    display.print(dht.computeHeatIndex(dhtTemperatureC, dhtHumidity, false), 1);
-    display.println(F(" C"));
+    display.print(F("WiFi: "));
+    display.println(wifiStatusLabel());
   }
+  display.display();
+}
+
+void drawWifiScreen() {
+  drawInfoHeader(F("WiFi Status"));
+
+  const wl_status_t status = WiFi.status();
+  display.setCursor(0, 16);
+  display.print(F("State: "));
+  display.println(wifiStatusDetail(status));
+
+  display.setCursor(0, 28);
+  display.print(F("SSID: "));
+  if (wifiConfigured) {
+    display.println(AppConfig::WIFI_SSID);
+  } else {
+    display.println(F("not set"));
+  }
+
+  display.setCursor(0, 40);
+  if (status == WL_CONNECTED) {
+    display.print(F("IP: "));
+    display.println(WiFi.localIP());
+  } else if (wifiScanCount >= 0) {
+    display.print(F("Seen: "));
+    display.println(wifiScanCount);
+  } else {
+    display.println(F("Seen: scan..."));
+  }
+
+  display.setCursor(0, 52);
+  if (wifiScanCount > 0 && wifiTopSsid1.length() > 0) {
+    display.println(wifiTopSsid1);
+  } else {
+    display.print(F("API: "));
+    display.println(AppConfig::API_URL[0] == '\0' ? F("not set") : F("ready"));
+  }
+
   display.display();
 }
 
@@ -311,6 +401,19 @@ void readDHT() {
   }
 }
 
+void buildSnapshot() {
+  latestSnapshot.timestampMs = millis();
+  latestSnapshot.mq135Raw = mq135Raw;
+  latestSnapshot.mq135Baseline = mq135Baseline;
+  latestSnapshot.mq135Index = mq135Index;
+  latestSnapshot.mq2Detected = mq2Detected;
+  latestSnapshot.temperatureC = dhtTemperatureC;
+  latestSnapshot.humidityPct = dhtHumidity;
+  latestSnapshot.mode = currentMode;
+  latestSnapshot.mood = currentMood;
+  snapshotReady = true;
+}
+
 Mood evaluateDockedMood() {
   if ((millis() - bootMs) < WARMUP_MS) {
     return MOOD_NEUTRAL;
@@ -351,6 +454,160 @@ void printMqDebug() {
   }
 }
 
+void printWifiScanResults() {
+  Serial.print(F("WiFi scan found: "));
+  Serial.println(wifiScanCount);
+
+  if (wifiTopSsid1.length() > 0) {
+    Serial.print(F("SSID 1: "));
+    Serial.println(wifiTopSsid1);
+  }
+  if (wifiTopSsid2.length() > 0) {
+    Serial.print(F("SSID 2: "));
+    Serial.println(wifiTopSsid2);
+  }
+  if (wifiTopSsid3.length() > 0) {
+    Serial.print(F("SSID 3: "));
+    Serial.println(wifiTopSsid3);
+  }
+}
+
+void updateWifiStatus() {
+  const wl_status_t status = WiFi.status();
+  if (status == lastWifiStatus) {
+    return;
+  }
+
+  lastWifiStatus = status;
+  infoScreenDirty = true;
+  Serial.print(F("WiFi status: "));
+  Serial.println(wifiStatusDetail(status));
+
+  if (status == WL_CONNECTED) {
+    Serial.print(F("WiFi IP: "));
+    Serial.println(WiFi.localIP());
+  }
+}
+
+void startWifiConnection() {
+  if (!wifiConfigured) {
+    return;
+  }
+
+  WiFi.disconnect();
+  delay(50);
+  WiFi.begin(AppConfig::WIFI_SSID, AppConfig::WIFI_PASSWORD);
+  wifiConnectAttempted = true;
+  lastWifiAttemptMs = millis();
+
+  Serial.print(F("Connecting WiFi to SSID: "));
+  Serial.println(AppConfig::WIFI_SSID);
+}
+
+void triggerWifiScan() {
+  if (WiFi.scanComplete() == WIFI_SCAN_RUNNING) {
+    return;
+  }
+
+  WiFi.scanDelete();
+  WiFi.scanNetworks(true, true);
+  wifiScanRequested = true;
+  lastWifiScanMs = millis();
+}
+
+void updateWifiScanResults() {
+  const int scanState = WiFi.scanComplete();
+  if (scanState == WIFI_SCAN_RUNNING) {
+    return;
+  }
+
+  if (scanState >= 0) {
+    wifiScanCount = scanState;
+    wifiTopSsid1 = wifiScanCount > 0 ? WiFi.SSID(0) : "";
+    wifiTopSsid2 = wifiScanCount > 1 ? WiFi.SSID(1) : "";
+    wifiTopSsid3 = wifiScanCount > 2 ? WiFi.SSID(2) : "";
+    WiFi.scanDelete();
+    wifiScanRequested = false;
+    infoScreenDirty = true;
+    printWifiScanResults();
+    return;
+  }
+
+  if (!wifiScanRequested || (millis() - lastWifiScanMs) >= WIFI_SCAN_MS) {
+    triggerWifiScan();
+  }
+}
+
+void ensureWifiConnected() {
+  if (!wifiConfigured) {
+    return;
+  }
+
+  updateWifiStatus();
+  updateWifiScanResults();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    return;
+  }
+
+  const unsigned long now = millis();
+  if (!wifiConnectAttempted || (now - lastWifiAttemptMs) >= WIFI_RECONNECT_MS) {
+    startWifiConnection();
+  }
+}
+
+void postDockedSnapshot() {
+  if (!snapshotReady || currentMode != MODE_DOCKED || !wifiConfigured) {
+    return;
+  }
+  if (WiFi.status() != WL_CONNECTED) {
+    return;
+  }
+  if (AppConfig::API_URL[0] == '\0') {
+    return;
+  }
+
+  const unsigned long now = millis();
+  if ((now - lastUploadMs) < DOCKED_UPLOAD_MS) {
+    return;
+  }
+
+  HTTPClient http;
+  http.begin(AppConfig::API_URL);
+  http.addHeader("Content-Type", "application/json");
+
+  String payload;
+  payload.reserve(256);
+  payload += F("{\"device_id\":\"");
+  payload += AppConfig::API_DEVICE_ID;
+  payload += F("\",\"timestamp_ms\":");
+  payload += latestSnapshot.timestampMs;
+  payload += F(",\"mode\":\"docked\",\"mood\":\"");
+  payload += moodLabel(latestSnapshot.mood);
+  payload += F("\",\"mq135_raw\":");
+  payload += latestSnapshot.mq135Raw;
+  payload += F(",\"mq135_baseline\":");
+  payload += String(latestSnapshot.mq135Baseline, 2);
+  payload += F(",\"mq135_index\":");
+  payload += String(latestSnapshot.mq135Index, 3);
+  payload += F(",\"mq2_detected\":");
+  payload += (latestSnapshot.mq2Detected ? F("true") : F("false"));
+  payload += F(",\"temperature_c\":");
+  payload += isnan(latestSnapshot.temperatureC) ? F("null") : String(latestSnapshot.temperatureC, 1);
+  payload += F(",\"humidity_pct\":");
+  payload += isnan(latestSnapshot.humidityPct) ? F("null") : String(latestSnapshot.humidityPct, 1);
+  payload += '}';
+
+  const int httpCode = http.POST(payload);
+  Serial.print(F("Upload result: "));
+  Serial.println(httpCode);
+  http.end();
+
+  if (httpCode > 0) {
+    lastUploadMs = now;
+  }
+}
+
 void enterMode(Mode mode) {
   currentMode = mode;
   splashUntilMs = millis() + MODE_SPLASH_MS;
@@ -380,7 +637,7 @@ void updateModeButton() {
     if (currentMode == MODE_DOCKED &&
         !longPressHandled &&
         pressDuration <= SHORT_PRESS_MAX_MS) {
-      currentDockedScreen = static_cast<DockedScreen>((currentDockedScreen + 1) % 4);
+      currentDockedScreen = static_cast<DockedScreen>((currentDockedScreen + 1) % 5);
       infoScreenDirty = true;
     }
     longPressHandled = false;
@@ -420,6 +677,7 @@ void updateDockedSensors() {
   readMQ2();
   readDHT();
   currentMood = evaluateDockedMood();
+  buildSnapshot();
   infoScreenDirty = true;
   printMqDebug();
 }
@@ -453,12 +711,6 @@ void renderCurrentScreen() {
     return;
   }
 
-  if (lastRenderedMode == MODE_DOCKED && lastRenderedDockedScreen == currentDockedScreen) {
-    if (!infoScreenDirty) {
-      return;
-    }
-  }
-
   if (!infoScreenDirty &&
       lastRenderedMode == MODE_DOCKED &&
       lastRenderedDockedScreen == currentDockedScreen) {
@@ -475,6 +727,9 @@ void renderCurrentScreen() {
     case SCREEN_DHT:
       drawDhtScreen();
       break;
+    case SCREEN_WIFI:
+      drawWifiScreen();
+      break;
     case SCREEN_FACE:
       break;
   }
@@ -489,7 +744,7 @@ void renderCurrentScreen() {
 
 void setup() {
   Serial.begin(115200);
-  delay(200);
+  delay(300);
 
   bootMs = millis();
   nextBlinkMs = bootMs + BLINK_INTERVAL_MS;
@@ -522,12 +777,25 @@ void setup() {
   display.display();
 
   dht.begin();
+
+  WiFi.mode(WIFI_STA);
+  WiFi.persistent(false);
+  WiFi.setSleep(false);
+  WiFi.setAutoReconnect(true);
+  WiFi.disconnect();
+
+  wifiConfigured = AppConfig::WIFI_SSID[0] != '\0';
+  lastWifiStatus = WiFi.status();
+
   mq135Raw = readMqAverage();
   mq135Baseline = max(1.0f, static_cast<float>(mq135Raw));
   readMQ2();
   readDHT();
   currentMood = evaluateDockedMood();
+  buildSnapshot();
 
+  triggerWifiScan();
+  ensureWifiConnected();
   enterMode(MODE_DOCKED);
 }
 
@@ -537,6 +805,8 @@ void loop() {
   if (currentMode == MODE_DOCKED) {
     updateDockedSensors();
     updateBlink();
+    ensureWifiConnected();
+    postDockedSnapshot();
   } else {
     blinkActive = false;
   }
