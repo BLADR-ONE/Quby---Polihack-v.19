@@ -1,16 +1,15 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
-import { QubyProvider } from '../context/QubyContext';
+import { QubyProvider } from '@/context/QubyContext';
 
 export default function RootLayout() {
   return (
     <QubyProvider>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
       </Stack>
-
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
     </QubyProvider>
   );
 }

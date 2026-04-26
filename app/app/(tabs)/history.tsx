@@ -1,86 +1,98 @@
-import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { HISTORY_ITEMS } from '@/data/mock';
 
 export default function HistoryScreen() {
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.title}>History</Text>
-      <Text style={styles.subtitle}>Saved air quality readings and alerts.</Text>
-
-      <View style={styles.historyCard}>
-        <Text style={styles.time}>Today, 10:42</Text>
-        <Text style={styles.eventTitle}>Humidity warning</Text>
-        <Text style={styles.eventText}>
-          Humidity was too high for Baby Mode. Ventilation was recommended.
-        </Text>
-      </View>
-
-      <View style={styles.historyCard}>
-        <Text style={styles.time}>Today, 10:30</Text>
-        <Text style={styles.eventTitle}>Air quality normal</Text>
-        <Text style={styles.eventText}>
-          Temperature, humidity and air quality were within comfort limits.
-        </Text>
-      </View>
-
-      <View style={styles.historyCard}>
-        <Text style={styles.time}>Yesterday, 21:15</Text>
-        <Text style={styles.eventTitle}>VOC level increased</Text>
-        <Text style={styles.eventText}>
-          Air quality dropped. The room needed fresh air.
-        </Text>
-      </View>
-
-      <Text style={styles.note}>
-        Later, this data will come from Firebase.
+      <Text style={styles.subtitle}>
+        Previous air readings and alerts from your tips.
       </Text>
+
+      {HISTORY_ITEMS.map((item) => (
+        <View key={item.id} style={styles.card}>
+          <Text style={styles.time}>{item.time}</Text>
+          <Text style={styles.event}>{item.title}</Text>
+          <Text style={styles.body}>{item.summary}</Text>
+          <Text style={styles.meta}>
+            {item.profile} • {item.status}
+          </Text>
+        </View>
+      ))}
+
+
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
+    backgroundColor: '#ecfeff',
+  },
+  content: {
     padding: 20,
-    backgroundColor: '#F0F0F0',
+    paddingTop: 56,
+    paddingBottom: 120,
   },
   title: {
-    fontSize: 30,
-    fontWeight: '800',
-    marginTop: 30,
-    color: '#1E293B',
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#0f172a',
   },
   subtitle: {
-    fontSize: 15,
-    color: '#64748B',
-    marginBottom: 20,
+    color: '#9d174d',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
+    marginBottom: 18,
   },
-  historyCard: {
-    backgroundColor: '#FFFFFF',
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
     padding: 18,
-    borderRadius: 18,
     marginBottom: 14,
+    borderColor: '#C0C0C0',
+    borderWidth: 2,
   },
   time: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 4,
+    color: '#64748b',
+    fontSize: 12,
+    marginBottom: 6,
   },
-  eventTitle: {
-    fontSize: 17,
+  event: {
+    color: '#0f172a',
+    fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 5,
+    marginBottom: 6,
   },
-  eventText: {
-    fontSize: 14,
+  body: {
     color: '#475569',
+    fontSize: 14,
     lineHeight: 20,
   },
-  note: {
-    fontSize: 13,
-    color: '#64748B',
+  meta: {
+    color: '#be185d',
+    fontSize: 12,
+    fontWeight: '700',
     marginTop: 10,
-    lineHeight: 19,
+  },
+  noteCard: {
+    backgroundColor: '#ffe4e6',
+    borderRadius: 24,
+    padding: 18,
+    marginTop: 2,
+  },
+  noteTitle: {
+    color: '#9f1239',
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  noteBody: {
+    color: '#9f1239',
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

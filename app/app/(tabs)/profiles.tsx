@@ -1,249 +1,176 @@
-import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { PROFILE_ORDER, ProfileKey, PROFILES } from '../../constants/profiles';
-import { useQuby } from '../../context/QubyContext';
+import { PROFILE_ORDER, ProfileKey, PROFILES } from '@/constants/profiles';
+import { useQuby } from '@/context/QubyContext';
 
 export default function ProfilesScreen() {
   const { activeProfile, setActiveProfile } = useQuby();
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Health Profiles</Text>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <Text style={styles.title}>Profiles</Text>
       <Text style={styles.subtitle}>
-        Select the sensitivity mode based on the room's occupant.
+        Change how sensitive Quby is for each type of user.
       </Text>
 
-      {PROFILE_ORDER.map((key: ProfileKey) => {
-        const profile = PROFILES[key];
-        const isSelected = activeProfile === key;
+      {PROFILE_ORDER.map((profileKey: ProfileKey) => {
+        const profile = PROFILES[profileKey];
+        const isActive = activeProfile === profileKey;
 
         return (
           <TouchableOpacity
-            key={key}
-            style={[styles.profileCard, isSelected && styles.selectedCard]}
-            onPress={() => setActiveProfile(key)}
+            key={profileKey}
+            activeOpacity={0.9}
+            onPress={() => setActiveProfile(profileKey)}
+            style={[styles.card, isActive && styles.activeCard]}
           >
-            <View style={styles.profileHeader}>
-              <View style={styles.profileMainInfo}>
-                <View style={styles.iconBox}>
-                  <Text style={styles.profileIcon}>{profile.icon}</Text>
-                </View>
-
-                <View style={styles.profileTextBox}>
-                  <Text style={styles.profileName}>{profile.name}</Text>
-                  <Text style={styles.profileDescription}>
-                    {profile.description}
-                  </Text>
+            <View style={styles.cardHeader}>
+              <View style={styles.headerMain}>
+                <Text style={styles.icon}>{profile.icon}</Text>
+                <View style={styles.headerCopy}>
+                  <Text style={styles.name}>{profile.name}</Text>
+                  <Text style={styles.description}>{profile.description}</Text>
                 </View>
               </View>
-
-              {isSelected && (
-                <View style={styles.activeBadge}>
-                  <Text style={styles.activeBadgeText}>ACTIVE</Text>
+              {isActive ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>ACTIVE</Text>
                 </View>
-              )}
+              ) : null}
             </View>
 
-            <View style={styles.parametersBox}>
-              <Text style={styles.parametersTitle}>Recommended limits</Text>
-
-              <View style={styles.parameterRow}>
-                <Text style={styles.parameterLabel}>Temperature</Text>
-                <Text style={styles.parameterValue}>
-                  {profile.tempMin}°C - {profile.tempMax}°C
-                </Text>
-              </View>
-
-              <View style={styles.parameterRow}>
-                <Text style={styles.parameterLabel}>Humidity</Text>
-                <Text style={styles.parameterValue}>
-                  {profile.humidityMin}% - {profile.humidityMax}%
-                </Text>
-              </View>
-
-              <View style={styles.parameterRow}>
-                <Text style={styles.parameterLabel}>CO₂</Text>
-                <Text style={styles.parameterValue}>
-                  max {profile.co2Max} ppm
-                </Text>
-              </View>
-
-              <View style={styles.parameterRow}>
-                <Text style={styles.parameterLabel}>Fumes particles</Text>
-                <Text style={styles.parameterValue}>
-                  max {profile.fumesMax} µg/m³
-                </Text>
-              </View>
-
-              <View style={styles.parameterRow}>
-                <Text style={styles.parameterLabel}>Smoke particles</Text>
-                <Text style={styles.parameterValue}>
-                  max {profile.smokeMax} µg/m³
-                </Text>
-              </View>
+            <View style={styles.thresholds}>
+              <Text style={styles.thresholdTitle}>Thresholds</Text>
+              <Text style={styles.thresholdLine}>
+                Temp: {profile.tempMin}°C to {profile.tempMax}°C
+              </Text>
+              <Text style={styles.thresholdLine}>
+                Humidity: {profile.humidityMin}% to {profile.humidityMax}%
+              </Text>
+              <Text style={styles.thresholdLine}>CO2: max {profile.co2Max}</Text>
+              <Text style={styles.thresholdLine}>Fumes: max {profile.fumesMax}</Text>
+              <Text style={styles.thresholdLine}>Smoke: max {profile.smokeMax}</Text>
             </View>
           </TouchableOpacity>
         );
       })}
 
-      <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>Note</Text>
-        <Text style={styles.infoText}>
-          These modes are not medical diagnoses. They only adjust alert sensitivity for temperature, humidity, CO₂ and particle levels.
+      <View style={styles.noteCard}>
+        <Text style={styles.noteTitle}>Important</Text>
+        <Text style={styles.noteBody}>
+          These profiles are not medical diagnoses. They only change alert
+          sensitivity for the demo.
         </Text>
       </View>
-
-      <View style={styles.bottomSpace} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
+    backgroundColor: '#ecfeff',
+  },
+  content: {
     padding: 20,
-    backgroundColor: '#F0F0F0',
+    paddingTop: 56,
+    paddingBottom: 120,
   },
-
   title: {
-    fontSize: 30,
-    fontWeight: '800',
-    marginTop: 30,
-    color: '#1E293B',
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#0f172a',
   },
-
   subtitle: {
-    fontSize: 15,
-    color: '#64748B',
-    marginBottom: 20,
-    lineHeight: 21,
+    color: '#64748b',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
+    marginBottom: 18,
   },
-
-  profileCard: {
-    backgroundColor: '#FFFFFF',
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
     padding: 18,
-    borderRadius: 20,
-    marginBottom: 16,
+    marginBottom: 14,
+    borderColor: '#C0C0C0',
     borderWidth: 2,
-    borderColor: '#E2E8F0',
   },
-
-  selectedCard: {
-    backgroundColor: '#EFF6FF',
-    borderWidth: 3,
-    borderColor: '#2563EB',
+  activeCard: {
+    borderColor: '#0f766e',
+    backgroundColor: '#ecfeff',
   },
-
-  profileHeader: {
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
   },
-
-  profileMainInfo: {
+  headerMain: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
     gap: 12,
   },
-
-  iconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: '#E0F2FE',
-    alignItems: 'center',
-    justifyContent: 'center',
+  icon: {
+    fontSize: 34,
   },
-
-  profileIcon: {
-    fontSize: 28,
-  },
-
-  profileTextBox: {
+  headerCopy: {
     flex: 1,
   },
-
-  profileName: {
-    fontSize: 20,
+  name: {
+    color: '#0f172a',
+    fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 5,
+    marginBottom: 4,
   },
-
-  profileDescription: {
+  description: {
+    color: '#64748b',
     fontSize: 14,
-    color: '#64748B',
     lineHeight: 20,
   },
-
-  activeBadge: {
-    backgroundColor: '#2563EB',
+  badge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#0f766e',
+    borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 999,
-    height: 30,
   },
-
-  activeBadgeText: {
-    color: '#FFFFFF',
+  badgeText: {
+    color: '#ffffff',
     fontSize: 11,
     fontWeight: '800',
   },
-
-  parametersBox: {
-    marginTop: 16,
-    backgroundColor: '#F8FAFC',
+  thresholds: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 18,
     padding: 14,
-    borderRadius: 16,
+    marginTop: 16,
   },
-
-  parametersTitle: {
+  thresholdTitle: {
+    color: '#334155',
     fontSize: 14,
     fontWeight: '800',
-    color: '#334155',
-    marginBottom: 10,
-  },
-
-  parameterRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: 8,
   },
-
-  parameterLabel: {
+  thresholdLine: {
+    color: '#475569',
     fontSize: 13,
-    color: '#64748B',
-  },
-
-  parameterValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-
-  infoCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 18,
-    borderRadius: 18,
-    marginTop: 8,
-  },
-
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0F172A',
     marginBottom: 6,
   },
-
-  infoText: {
-    fontSize: 16,
-    color: '#475569',
-    lineHeight: 20,
+  noteCard: {
+    backgroundColor: '#cffafe',
+    borderRadius: 24,
+    padding: 18,
+    marginTop: 6,
   },
-
-  bottomSpace: {
-    height: 40,
+  noteTitle: {
+    color: '#155e75',
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  noteBody: {
+    color: '#155e75',
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

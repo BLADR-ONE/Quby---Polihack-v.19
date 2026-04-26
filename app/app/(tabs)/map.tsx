@@ -1,282 +1,187 @@
-import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-const locations = [
-  {
-    name: 'Home',
-    status: 'Good air quality',
-    time: 'Today, 10:30',
-    temperature: '23°C',
-    humidity: '48%',
-    co2: '820 ppm',
-  },
-  {
-    name: 'Park Walk',
-    status: 'Fresh outdoor air',
-    time: 'Today, 12:10',
-    temperature: '21°C',
-    humidity: '52%',
-    co2: '610 ppm',
-  },
-  {
-    name: 'Near Road',
-    status: 'Smoke/fumes warning',
-    time: 'Today, 13:25',
-    temperature: '24°C',
-    humidity: '45%',
-    co2: '980 ppm',
-  },
-];
+import { MAP_POINTS } from '@/data/mock';
 
 export default function MapScreen() {
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Quby Map</Text>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <Text style={styles.title}>Map</Text>
       <Text style={styles.subtitle}>
-        See the places where Quby checked the air quality.
+        Mock places from Cluj-Napoca where Quby checked the air.
       </Text>
 
       <View style={styles.mapCard}>
-        <View style={styles.mapBackground}>
-          <View style={[styles.pin, styles.pinOne]}>
-            <Text style={styles.pinText}>🏠</Text>
-          </View>
-
-          <View style={[styles.pin, styles.pinTwo]}>
-            <Text style={styles.pinText}>🌳</Text>
-          </View>
-
-          <View style={[styles.pin, styles.pinThree]}>
-            <Text style={styles.pinText}>🚗</Text>
-          </View>
-
-          <View style={styles.routeLineOne} />
-          <View style={styles.routeLineTwo} />
+        <View style={styles.mapCanvas}>
+          <View style={styles.river} />
+          <View style={styles.routeOne} />
+          <View style={styles.routeTwo} />
+          {MAP_POINTS.map((point) => (
+            <View
+              key={point.name}
+              style={[
+                styles.pin,
+                { top: point.top, left: point.left, backgroundColor: point.color },
+              ]}
+            >
+              <Text style={styles.pinText}>{point.icon}</Text>
+            </View>
+          ))}
         </View>
       </View>
 
-      <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>Tracked route</Text>
-        <Text style={styles.infoText}>
-          This map shows where Quby was used and what air quality was detected in each place.
-        </Text>
-      </View>
-
-      <Text style={styles.sectionTitle}>Visited places</Text>
-
-      {locations.map((location) => (
-        <View key={location.name} style={styles.locationCard}>
+      {MAP_POINTS.map((point) => (
+        <View key={point.name} style={styles.locationCard}>
           <View style={styles.locationHeader}>
-            <Text style={styles.locationName}>{location.name}</Text>
-            <Text style={styles.locationTime}>{location.time}</Text>
+            <Text style={styles.locationName}>{point.name}</Text>
+            <Text style={styles.locationTime}>{point.time}</Text>
           </View>
-
-          <Text style={styles.locationStatus}>{location.status}</Text>
-
-          <View style={styles.sensorRow}>
-            <Text style={styles.sensorText}>Temp: {location.temperature}</Text>
-            <Text style={styles.sensorText}>Humidity: {location.humidity}</Text>
-          </View>
-
-          <Text style={styles.sensorText}>CO₂: {location.co2}</Text>
+          <Text style={[styles.locationStatus, { color: point.color }]}>
+            {point.status}
+          </Text>
+          <Text style={styles.locationInfo}>
+            Temp {point.temperature}°C • Humidity {point.humidity}% • CO2 {point.co2}
+          </Text>
         </View>
       ))}
 
       <View style={styles.noteCard}>
         <Text style={styles.noteTitle}>Next step</Text>
-        <Text style={styles.noteText}>
-          Later, this page can use real GPS locations from the phone and save them together with the sensor readings.
+        <Text style={styles.noteBody}>
+          Later this tab can save real GPS positions together with sensor
+          readings from the phone and ESP32.
         </Text>
       </View>
-
-      <View style={styles.bottomSpace} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
+    backgroundColor: '#ecfeff',
+  },
+  content: {
     padding: 20,
-    backgroundColor: '#F0F0F0',
+    paddingTop: 56,
+    paddingBottom: 120,
   },
-
   title: {
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: '900',
-    marginTop: 30,
-    color: '#1E293B',
+    color: '#0f172a',
   },
-
   subtitle: {
-    fontSize: 15,
-    color: '#64748B',
-    marginBottom: 20,
-    lineHeight: 21,
+    color: '#3f6212',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
+    marginBottom: 18,
   },
-
   mapCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: '#ffffff',
+    borderRadius: 28,
     padding: 14,
     marginBottom: 16,
-  },
 
-  mapBackground: {
-    height: 260,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+  },
+  mapCanvas: {
+    height: 270,
+    borderRadius: 22,
+    backgroundColor: '#f0fdf4',
     overflow: 'hidden',
-    position: 'relative',
+    borderColor: '#C0C0C0',
+    borderWidth: 2,
   },
-
+  river: {
+    position: 'absolute',
+    width: 360,
+    height: 50,
+    backgroundColor: '#bae6fd',
+    top: 110,
+    left: -40,
+    transform: [{ rotate: '-12deg' }],
+  },
+  routeOne: {
+    position: 'absolute',
+    width: 180,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: '#84cc16',
+    top: 70,
+    left: 40,
+    transform: [{ rotate: '18deg' }],
+  },
+  routeTwo: {
+    position: 'absolute',
+    width: 160,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: '#84cc16',
+    top: 168,
+    left: 94,
+    transform: [{ rotate: '-16deg' }],
+  },
   pin: {
     position: 'absolute',
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: '#FFFFFF',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: '#2563EB',
-    zIndex: 2,
+    borderColor: '#ffffff',
   },
-
   pinText: {
     fontSize: 22,
   },
-
-  pinOne: {
-    top: 45,
-    left: 35,
-  },
-
-  pinTwo: {
-    top: 130,
-    left: 145,
-  },
-
-  pinThree: {
-    top: 70,
-    right: 35,
-    borderColor: '#DC2626',
-  },
-
-  routeLineOne: {
-    position: 'absolute',
-    width: 135,
-    height: 5,
-    backgroundColor: '#60A5FA',
-    top: 110,
-    left: 70,
-    transform: [{ rotate: '35deg' }],
-    borderRadius: 999,
-  },
-
-  routeLineTwo: {
-    position: 'absolute',
-    width: 120,
-    height: 5,
-    backgroundColor: '#60A5FA',
-    top: 120,
-    right: 60,
-    transform: [{ rotate: '-25deg' }],
-    borderRadius: 999,
-  },
-
-  infoCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 18,
-    borderRadius: 18,
-    marginBottom: 18,
-  },
-
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 6,
-  },
-
-  infoText: {
-    fontSize: 14,
-    color: '#475569',
-    lineHeight: 20,
-  },
-
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 12,
-  },
-
   locationCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 18,
-    borderRadius: 18,
-    marginBottom: 14,
+    backgroundColor: '#ffffff',
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 12,
+    borderColor: '#C0C0C0',
+    borderWidth: 2,
   },
-
   locationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
     marginBottom: 6,
   },
-
   locationName: {
+    color: '#0f172a',
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
   },
-
   locationTime: {
+    color: '#64748b',
     fontSize: 12,
-    color: '#64748B',
   },
-
   locationStatus: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#2563EB',
-    marginBottom: 10,
-  },
-
-  sensorRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginBottom: 4,
-  },
-
-  sensorText: {
-    fontSize: 13,
-    color: '#475569',
-  },
-
-  noteCard: {
-    backgroundColor: '#EFF6FF',
-    padding: 18,
-    borderRadius: 18,
-    marginTop: 4,
-  },
-
-  noteTitle: {
-    fontSize: 16,
     fontWeight: '800',
-    color: '#1D4ED8',
-    marginBottom: 6,
+    marginBottom: 8,
   },
-
-  noteText: {
-    fontSize: 14,
-    color: '#1E40AF',
+  locationInfo: {
+    color: '#475569',
+    fontSize: 13,
     lineHeight: 20,
   },
-
-  bottomSpace: {
-    height: 40,
+  noteCard: {
+    backgroundColor: '#fef9c3',
+    borderRadius: 24,
+    padding: 18,
+    marginTop: 4,
+  },
+  noteTitle: {
+    color: '#854d0e',
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  noteBody: {
+    color: '#854d0e',
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

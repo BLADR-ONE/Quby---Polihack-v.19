@@ -1,62 +1,39 @@
 {
   "expo": {
-    "name": "quby-app",
-    "slug": "quby-app",
+    "name": "Quby",
+    "slug": "quby",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "qubyapp",
-    "userInterfaceStyle": "automatic",
+    "scheme": "quby",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
-
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ecfeff"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.quby.app",
-      "infoPlist": {
-        "NSBluetoothAlwaysUsageDescription": "Am nevoie de Bluetooth pentru a controla robotul Quby."
-      }
+      "bundleIdentifier": "com.quby.app"
     },
-
     "android": {
       "package": "com.quby.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#ecfeff",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "permissions": [
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_CONNECT",
-        "android.permission.BLUETOOTH_SCAN",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.BLUETOOTH_SCAN"
       ]
     },
-
     "web": {
-      "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-
-    "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
-        }
-      ],
-      [
-        "react-native-ble-manager",
-        {
-          "neverForLocation": true,
-          "bluetoothAlwaysPermission": "Am nevoie de Bluetooth pentru a controla robotul Quby."
-        }
-      ]
-    ],
-
+    "plugins": ["expo-router"],
     "experiments": {
       "typedRoutes": true
     }

@@ -1,96 +1,99 @@
-import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { useQuby } from '../../context/QubyContext';
+import { useQuby } from '@/context/QubyContext';
 
 export default function SettingsScreen() {
-  const { activeProfileData } = useQuby();
+  const { activeProfileData, bluetoothState, historyMode } = useQuby();
 
   return (
-    <View style={styles.container}>
+    <View style={styles.screen}>
       <Text style={styles.title}>Settings</Text>
-      <Text style={styles.subtitle}>Manage Quby preferences.</Text>
+      <Text style={styles.subtitle}>Simple preferences for the current demo.</Text>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Active Profile</Text>
+        <Text style={styles.label}>Active profile</Text>
         <Text style={styles.value}>{activeProfileData.name}</Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Monitoring Mode</Text>
-        <Text style={styles.value}>Indoor Air Quality</Text>
+        <Text style={styles.label}>Connection source</Text>
+        <Text style={styles.value}>{bluetoothState}</Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Sensors</Text>
-        <Text style={styles.value}>Temperature, Humidity, CO₂, Particles</Text>
+        <Text style={styles.label}>History storage</Text>
+        <Text style={styles.value}>{historyMode}</Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Anonymous Data Sharing</Text>
-        <Text style={styles.value}>Off</Text>
+        <Text style={styles.label}>Tracked sensors</Text>
+        <Text style={styles.value}>Temperature, humidity, CO2, fumes, smoke</Text>
       </View>
 
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>Clear History</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.note}>
-        Firebase history and real ESP32 sensor readings will be added after the basic interface is working.
-      </Text>
+      <View style={styles.noteCard}>
+        <Text style={styles.noteTitle}>What comes next</Text>
+        <Text style={styles.noteBody}>
+          - Premium Features {"\n"}
+          - Home Assistant Integration {"\n"}
+          - Bluetooth phone Connection {"\n"}
+          - Database data collection {"\n"}
+        </Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
+    backgroundColor: '#ecfeff',
     padding: 20,
-    backgroundColor: '#F0F0F0',
+    paddingTop: 56,
   },
   title: {
-    fontSize: 30,
-    fontWeight: '800',
-    marginTop: 30,
-    color: '#1E293B',
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#0f172a',
   },
   subtitle: {
-    fontSize: 15,
-    color: '#64748B',
-    marginBottom: 20,
+    color: '#1d4ed8',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
+    marginBottom: 18,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
     padding: 18,
-    borderRadius: 18,
     marginBottom: 14,
   },
   label: {
-    fontSize: 14,
-    color: '#64748B',
-  },
-  value: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginTop: 5,
-  },
-  button: {
-    backgroundColor: '#2563EB',
-    padding: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
+    color: '#64748b',
+    fontSize: 13,
     fontWeight: '700',
   },
-  note: {
-    marginTop: 18,
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 19,
+  value: {
+    color: '#0f172a',
+    fontSize: 18,
+    fontWeight: '800',
+    marginTop: 6,
+  },
+  noteCard: {
+    backgroundColor: '#dbeafe',
+    borderRadius: 24,
+    padding: 18,
+    marginTop: 4,
+  },
+  noteTitle: {
+    color: '#1d4ed8',
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  noteBody: {
+    color: '#1e3a8a',
+    fontSize: 14,
+    lineHeight: 20,
   },
 });

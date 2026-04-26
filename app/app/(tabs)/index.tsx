@@ -1,441 +1,273 @@
-import React, { useEffect } from 'react';
-import {
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { useQuby } from '../../context/QubyContext';
+import { useQuby } from '@/context/QubyContext';
 
-import {
-  notifyHighCo2,
-  requestNotificationPermission,
-} from '../../utils/notifications';
-
-export default function DashboardScreen() {
-  const {
-    activeProfileData,
-    reading,
-    status,
-    alerts,
-    recommendation,
-  } = useQuby();
-
-  const isCo2High = reading.co2 > activeProfileData.co2Max;
+export default function HomeScreen() {
+  const { activeProfileData, alerts, reading, recommendation, status } =
+    useQuby();
 
   const logoSource =
     status === 'SAFE'
-      ? require('../../assets/images/logo.png')
+      ? require('@/assets/images/logo.png')
       : status === 'WARNING'
-        ? require('../../assets/images/logo2.png')
-        : require('../../assets/images/logo3.png');
+        ? require('@/assets/images/logo2.png')
+        : require('@/assets/images/logo3.png');
 
-  useEffect(() => {
-    requestNotificationPermission();
-  }, []);
-
-  useEffect(() => {
-    if (isCo2High) {
-      notifyHighCo2(reading.co2);
-    }
-  }, [reading.co2, isCo2High]);
-
-  const statusCardStyle =
+  const statusStyles =
     status === 'SAFE'
-      ? styles.safeCard
+      ? { card: styles.safeCard, text: styles.safeText }
       : status === 'WARNING'
-        ? styles.warningCard
-        : styles.criticalCard;
+        ? { card: styles.warningCard, text: styles.warningText }
+        : { card: styles.criticalCard, text: styles.criticalText };
 
-  const statusTextStyle =
-    status === 'SAFE'
-      ? styles.safeText
-      : status === 'WARNING'
-        ? styles.warningText
-        : styles.criticalText;
+  const sensors = [
+    { label: 'Temperature', value: `${reading.temperature}°C`, hint: 'Indoor comfort' },
+    { label: 'Humidity', value: `${reading.humidity}%`, hint: 'Air moisture' },
+    { label: 'CO2', value: `${reading.co2} ppm`, hint: `Limit ${activeProfileData.co2Max}` },
+    { label: 'Fumes', value: `${reading.fumes}`, hint: `Limit ${activeProfileData.fumesMax}` },
+    { label: 'Smoke', value: `${reading.smoke}`, hint: `Limit ${activeProfileData.smokeMax}` },
+  ];
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.fixedHero}>
-        <Image
-          source={logoSource}
-          style={styles.heroLogo}
-          resizeMode="contain"
-        />
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <View style={styles.hero}>
+        <View style={styles.heroCopy}>
+          <Text style={styles.eyebrow}>Your everyday companionr</Text>
+          <Text style={styles.title}>Quby</Text>
+          <Text style={styles.subtitle}>
+            Docked at Home,
+            {"\n"}ready Everywhere.
+          </Text>
+        </View>
+
+        <Image resizeMode="contain" source={logoSource} style={styles.heroLogo} />
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View style={styles.contentPanel}>
-          <View style={styles.heroTextBox}>
-            <Text style={styles.heroTitle}>Quby Home</Text>
-            <Text style={styles.heroSubtitle}>
-              Indoor and outdoor air quality checker
-            </Text>
+      <View style={[styles.statusCard, statusStyles.card]}>
+        <Text style={styles.statusLabel}>Current air status</Text>
+        <Text style={[styles.statusValue, statusStyles.text]}>{status}</Text>
+        <Text style={styles.statusBody}>{recommendation}</Text>
+      </View>
+
+      <View style={styles.infoCard}>
+        <Text style={styles.cardTitle}>Active profile</Text>
+        <View style={styles.profileRow}>
+          <Text style={styles.profileIcon}>{activeProfileData.icon}</Text>
+          <View style={styles.profileText}>
+            <Text style={styles.profileName}>{activeProfileData.name}</Text>
+            <Text style={styles.cardBody}>{activeProfileData.description}</Text>
           </View>
-
-          <View style={[styles.statusCard, statusCardStyle]}>
-            <Text style={styles.statusLabel}>Air Status</Text>
-            <Text style={[styles.statusText, statusTextStyle]}>{status}</Text>
-            <Text style={styles.statusMessage}>{recommendation}</Text>
-          </View>
-
-          <View style={styles.infoCard}>
-            <Text style={styles.infoTitle}>Active Profile</Text>
-
-            <View style={styles.profileRow}>
-              <Text style={styles.profileIcon}>{activeProfileData.icon}</Text>
-
-              <View style={styles.profileTextBox}>
-                <Text style={styles.profileName}>{activeProfileData.name}</Text>
-                <Text style={styles.infoText}>
-                  {activeProfileData.description}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <Text style={styles.sectionTitle}>Live Sensor Data</Text>
-
-          <View style={styles.grid}>
-            <View style={styles.sensorCard}>
-              <Text style={styles.sensorTitle}>Temperature</Text>
-              <Text style={styles.sensorValue}>{reading.temperature}°C</Text>
-            </View>
-
-            <View style={styles.sensorCard}>
-              <Text style={styles.sensorTitle}>Humidity</Text>
-              <Text style={styles.sensorValue}>{reading.humidity}%</Text>
-            </View>
-
-            <View style={isCo2High ? styles.co2AlertCard : styles.sensorCard}>
-              <Text style={styles.sensorTitle}>CO₂</Text>
-
-              <Text style={isCo2High ? styles.co2AlertValue : styles.sensorValue}>
-                {reading.co2} ppm
-              </Text>
-
-              {isCo2High ? (
-                <View style={styles.co2NotificationBox}>
-                  <Text style={styles.co2NotificationTitle}>
-                    Quby air alert
-                  </Text>
-
-                  <Text style={styles.co2NotificationText}>
-                    CO₂ is high for {activeProfileData.name}. Open the window.
-                  </Text>
-                </View>
-              ) : (
-                <Text style={styles.co2GoodText}>
-                  CO₂ level is normal.
-                </Text>
-              )}
-
-              <Pressable
-                style={styles.notificationButton}
-                onPress={requestNotificationPermission}
-              >
-                <Text style={styles.notificationButtonText}>
-                  Enable notifications
-                </Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.sensorCard}>
-              <Text style={styles.sensorTitle}>Fumes</Text>
-              <Text style={styles.sensorValue}>{reading.fumes} µg/m³</Text>
-            </View>
-
-            <View style={styles.sensorCard}>
-              <Text style={styles.sensorTitle}>Smoke</Text>
-              <Text style={styles.sensorValue}>{reading.smoke} µg/m³</Text>
-            </View>
-          </View>
-
-          <View style={styles.infoCard}>
-            <Text style={styles.infoTitle}>Alerts</Text>
-
-            {alerts.length === 0 ? (
-              <Text style={styles.infoText}>No alerts for this profile.</Text>
-            ) : (
-              alerts.map((alert, index) => (
-                <Text key={index} style={styles.alertText}>
-                  • {alert}
-                </Text>
-              ))
-            )}
-          </View>
-
-          <View style={styles.infoCard}>
-            <Text style={styles.infoTitle}>What Quby checks</Text>
-            <Text style={styles.infoText}>
-              Quby monitors temperature, humidity, CO₂, fumes and smoke levels,
-              then adapts alerts based on the selected health profile.
-            </Text>
-          </View>
-
-          <View style={styles.bottomSpace} />
         </View>
-      </ScrollView>
-    </View>
+      </View>
+
+      <Text style={styles.sectionTitle}>Live sensor data</Text>
+      <View style={styles.grid}>
+        {sensors.map((sensor) => (
+          <View key={sensor.label} style={styles.sensorCard}>
+            <Text style={styles.sensorLabel}>{sensor.label}</Text>
+            <Text style={styles.sensorValue}>{sensor.value}</Text>
+            <Text style={styles.sensorHint}>{sensor.hint}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.infoCard}>
+        <Text style={styles.cardTitle}>Alerts</Text>
+        {alerts.length === 0 ? (
+          <Text style={styles.cardBody}>No profile alerts right now.</Text>
+        ) : (
+          alerts.map((alert) => (
+            <Text key={alert} style={styles.alertText}>
+              • {alert}
+            </Text>
+          ))
+        )}
+      </View>
+
+      <View style={styles.infoCard}>
+        <Text style={styles.cardTitle}>Recommendations</Text>
+        <Text style={styles.cardBody}>
+          Quby checks temperature, humidity, CO2, fumes, and smoke, then adapts
+          the result to the selected profile.
+        </Text>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#ecfeff',
   },
-
-  fixedHero: {
-    position: 'absolute',
-    top: 35,
-    left: 20,
-    right: 20,
-    height: 170,
-    backgroundColor: '#81D8D0',
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    zIndex: 0,
-  },
-
-  heroLogo: {
-    width: '100%',
-    height: '100%',
-  },
-
-  scroll: {
-    flex: 1,
-    zIndex: 1,
-    backgroundColor: 'transparent',
-  },
-
-  scrollContent: {
-    paddingTop: 220,
-  },
-
-  contentPanel: {
-    backgroundColor: '#F0F0F0',
+  content: {
     padding: 20,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    minHeight: 850,
+    paddingTop: 56,
+    paddingBottom: 120,
   },
-
-  heroTextBox: {
-    marginBottom: 20,
-  },
-
-  heroTitle: {
-    fontSize: 30,
-    fontWeight: '900',
-    color: '#0F172A',
-  },
-
-  heroSubtitle: {
-    fontSize: 15,
-    color: '#64748B',
-    marginTop: 4,
-  },
-
-  statusCard: {
-    padding: 20,
-    borderRadius: 20,
+  hero: {
+    backgroundColor: '#81d8d0',
+    borderRadius: 28,
+    padding: 24,
     marginBottom: 16,
   },
-
+  heroCopy: {
+    maxWidth: '70%',
+  },
+  eyebrow: {
+    color: '#0c6170',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  title: {
+    color: '#0c6170',
+    fontSize: 36,
+    fontWeight: '900',
+    marginTop: 8,
+  },
+  subtitle: {
+    color: '#00000',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 8,
+    // paddingRight: 2,
+  },
+  heroLogo: {
+    position: 'absolute',
+    right: 6,
+    bottom: 8,
+    width: 130,
+    height: 130,
+  },
+  statusCard: {
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 16,
+    borderColor: '#C0C0C0',
+    borderWidth: 2,
+  },
   safeCard: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#dcfce7',
+    borderColor: '#C0C0C0',
+    borderWidth: 2,
   },
-
   warningCard: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#fef3c7',
+    borderColor: '#C0C0C0',
+    borderWidth: 2,
   },
-
   criticalCard: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#fee2e2',
+    borderColor: '#C0C0C0',
+    borderWidth: 2,
   },
-
   statusLabel: {
     fontSize: 14,
-    color: '#475569',
-    fontWeight: '600',
-  },
-
-  statusText: {
-    fontSize: 34,
-    fontWeight: '900',
-    marginVertical: 5,
-  },
-
-  safeText: {
-    color: '#15803D',
-  },
-
-  warningText: {
-    color: '#D97706',
-  },
-
-  criticalText: {
-    color: '#DC2626',
-  },
-
-  statusMessage: {
-    fontSize: 14,
-    color: '#334155',
-    lineHeight: 20,
-  },
-
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginTop: 8,
-    marginBottom: 12,
-  },
-
-  infoCard: {
-    backgroundColor: '#F8FAFC',
-    padding: 18,
-    borderRadius: 18,
-    marginBottom: 12,
-  },
-
-  infoTitle: {
-    fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 6,
+    color: '#334155',
   },
-
-  infoText: {
+  statusValue: {
+    fontSize: 32,
+    fontWeight: '900',
+    marginTop: 6,
+    marginBottom: 8,
+    borderColor: '#C0C0C0',
+  },
+  safeText: {
+    color: '#15803d',
+  },
+  warningText: {
+    color: '#d97706',
+  },
+  criticalText: {
+    color: '#dc2626',
+  },
+  statusBody: {
+    color: '#334155',
     fontSize: 14,
-    color: '#475569',
     lineHeight: 20,
   },
+  infoCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 16,
+    borderColor: '#C0C0C0',
+    borderWidth: 2,
 
+  },
+  cardTitle: {
+    color: '#0f172a',
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 10,
+  },
+  cardBody: {
+    color: '#475569',
+    fontSize: 14,
+    lineHeight: 20,
+
+  },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-
   profileIcon: {
     fontSize: 34,
   },
-
-  profileTextBox: {
+  profileText: {
     flex: 1,
   },
-
   profileName: {
-    fontSize: 16,
+    color: '#0f172a',
+    fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 3,
+    marginBottom: 4,
   },
-
+  sectionTitle: {
+    color: '#0f172a',
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 12,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    marginBottom: 4,
   },
-
   sensorCard: {
     width: '48%',
-    backgroundColor: '#F8FAFC',
-    padding: 18,
-    borderRadius: 18,
+    backgroundColor: '#ffffff',
+    borderRadius: 22,
+    padding: 16,
     marginBottom: 12,
+    borderColor: '#C0C0C0',
+    borderWidth: 2,
   },
-
-  co2AlertCard: {
-    width: '48%',
-    backgroundColor: '#FEF2F2',
-    padding: 18,
-    borderRadius: 18,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
+  sensorLabel: {
+    color: '#64748b',
+    fontSize: 13,
+    fontWeight: '700',
   },
-
-  sensorTitle: {
-    fontSize: 14,
-    color: '#64748B',
-    marginBottom: 8,
-  },
-
   sensorValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-
-  co2AlertValue: {
-    fontSize: 22,
+    color: '#0f172a',
+    fontSize: 24,
     fontWeight: '900',
-    color: '#DC2626',
-  },
-
-  co2NotificationBox: {
-    backgroundColor: '#FFFFFF',
-    padding: 10,
-    borderRadius: 12,
     marginTop: 10,
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
   },
-
-  co2NotificationTitle: {
+  sensorHint: {
+    color: '#64748b',
     fontSize: 12,
-    fontWeight: '800',
-    color: '#991B1B',
-    marginBottom: 3,
-  },
-
-  co2NotificationText: {
-    fontSize: 12,
-    color: '#DC2626',
-    fontWeight: '700',
-    lineHeight: 17,
-  },
-
-  co2GoodText: {
-    fontSize: 12,
-    color: '#15803D',
-    fontWeight: '700',
     marginTop: 8,
   },
-
-  notificationButton: {
-    backgroundColor: '#0F172A',
-    paddingVertical: 8,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-
-  notificationButtonText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-
   alertText: {
-    fontSize: 14,
     color: '#475569',
-    marginBottom: 5,
+    fontSize: 14,
     lineHeight: 20,
-  },
-
-  bottomSpace: {
-    height: 40,
+    marginBottom: 6,
   },
 });

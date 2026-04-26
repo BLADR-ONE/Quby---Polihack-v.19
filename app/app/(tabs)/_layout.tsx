@@ -1,23 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import React from 'react';
 
-export default function TabLayout() {
+export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#2563EB',
-        tabBarInactiveTintColor: '#94A3B8',
+        tabBarActiveTintColor: '#0f766e',
+        tabBarInactiveTintColor: '#64748b',
         tabBarStyle: {
-          height: 65,
-          paddingBottom: 8,
-          paddingTop: 15,
-          backgroundColor: '#FFFFFF',
+          height: 70,
+          paddingTop: 10,
+          paddingBottom: 10,
+          backgroundColor: '#f8fafc',
+          borderTopWidth: 0,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '600',
+          fontWeight: '700',
         },
       }}
     >
@@ -26,47 +26,43 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
+            <Ionicons color={color} name="home" size={size} />
           ),
         }}
       />
-
-      <Tabs.Screen
-        name="map"
-        options={{
-          title: 'Map',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="map" size={size} color={color} />
-          ),
-        }}
-      />
-
       <Tabs.Screen
         name="profiles"
         options={{
           title: 'Profiles',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-circle" size={size} color={color} />
+            <Ionicons color={color} name="people" size={size} />
           ),
         }}
       />
-
+      <Tabs.Screen
+        name="map"
+        options={{
+          title: 'Map',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons color={color} name="map" size={size} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="history"
         options={{
           title: 'History',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="time" size={size} color={color} />
+            <Ionicons color={color} name="time" size={size} />
           ),
         }}
       />
-
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings" size={size} color={color} />
+            <Ionicons color={color} name="settings" size={size} />
           ),
         }}
       />
