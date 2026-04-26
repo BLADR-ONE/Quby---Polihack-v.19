@@ -24,15 +24,24 @@ export default function DashboardScreen() {
     recommendation,
   } = useQuby();
 
-  const isCo2High = reading.co2 > 1000;
+  const isCo2High = reading.co2 > activeProfileData.co2Max;
+
+  const logoSource =
+    status === 'SAFE'
+      ? require('../../assets/images/logo.png')
+      : status === 'WARNING'
+        ? require('../../assets/images/logo2.png')
+        : require('../../assets/images/logo3.png');
 
   useEffect(() => {
     requestNotificationPermission();
   }, []);
 
   useEffect(() => {
-    notifyHighCo2(reading.co2);
-  }, [reading.co2]);
+    if (isCo2High) {
+      notifyHighCo2(reading.co2);
+    }
+  }, [reading.co2, isCo2High]);
 
   const statusCardStyle =
     status === 'SAFE'
@@ -52,7 +61,7 @@ export default function DashboardScreen() {
     <View style={styles.screen}>
       <View style={styles.fixedHero}>
         <Image
-          source={require('../../assets/images/logo.png')}
+          source={logoSource}
           style={styles.heroLogo}
           resizeMode="contain"
         />
@@ -65,7 +74,9 @@ export default function DashboardScreen() {
         <View style={styles.contentPanel}>
           <View style={styles.heroTextBox}>
             <Text style={styles.heroTitle}>Quby Home</Text>
-            <Text style={styles.heroSubtitle}>Indoor air quality checker</Text>
+            <Text style={styles.heroSubtitle}>
+              Indoor and outdoor air quality checker
+            </Text>
           </View>
 
           <View style={[styles.statusCard, statusCardStyle]}>
@@ -116,7 +127,7 @@ export default function DashboardScreen() {
                   </Text>
 
                   <Text style={styles.co2NotificationText}>
-                    CO₂ is high. Open the window.
+                    CO₂ is high for {activeProfileData.name}. Open the window.
                   </Text>
                 </View>
               ) : (
@@ -144,11 +155,6 @@ export default function DashboardScreen() {
               <Text style={styles.sensorTitle}>Smoke</Text>
               <Text style={styles.sensorValue}>{reading.smoke} µg/m³</Text>
             </View>
-
-            <View style={styles.sensorCard}>
-              <Text style={styles.sensorTitle}>Particles</Text>
-              <Text style={styles.sensorValue}>{reading.particlesStatus}</Text>
-            </View>
           </View>
 
           <View style={styles.infoCard}>
@@ -168,7 +174,8 @@ export default function DashboardScreen() {
           <View style={styles.infoCard}>
             <Text style={styles.infoTitle}>What Quby checks</Text>
             <Text style={styles.infoText}>
-              Quby monitors temperature, humidity, CO₂ and particle levels, then adapts alerts based on the selected profile.
+              Quby monitors temperature, humidity, CO₂, fumes and smoke levels,
+              then adapts alerts based on the selected health profile.
             </Text>
           </View>
 
@@ -182,12 +189,12 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F0F0F0',
   },
 
   fixedHero: {
     position: 'absolute',
-    top: 25,
+    top: 35,
     left: 20,
     right: 20,
     height: 170,

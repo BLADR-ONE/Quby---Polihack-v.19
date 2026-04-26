@@ -1,4 +1,3 @@
-
 export type ProfileKey =
   | 'baby'
   | 'kid'
@@ -6,7 +5,6 @@ export type ProfileKey =
   | 'elderly'
   | 'asthma'
   | 'allergies';
-
 
 export type QubyProfile = {
   name: string;
@@ -34,78 +32,78 @@ export const PROFILES: Record<ProfileKey, QubyProfile> = {
   baby: {
     name: 'Baby Mode',
     icon: '🍼',
-    description: 'Sensitive limits for babies and very small children.',
-    tempMin: 20,
-    tempMax: 24,
+    description: 'Sensitive mode for nurseries and babies. Lower tolerance for poor air and overheating.',
+    tempMin: 16,
+    tempMax: 20,
     humidityMin: 40,
     humidityMax: 50,
     co2Max: 800,
-    fumesMax: 15,
-    smokeMax: 35,
+    fumesMax: 10,
+    smokeMax: 25,
   },
 
   kid: {
     name: 'Kid Mode',
     icon: '🧒',
-    description: 'For children sensitive to poor air quality, high CO₂ and particles.',
-    tempMin: 20,
+    description: 'Balanced limits for children, with stricter air quality warnings.',
+    tempMin: 18,
     tempMax: 24,
-    humidityMin: 40,
-    humidityMax: 60,
-    co2Max: 1000,
-    fumesMax: 15,
-    smokeMax: 45,
-  },
-
-  elderly: {
-    name: 'Elderly Mode',
-    icon: '👵',
-    description: 'Comfort-focused limits for elderly people.',
-    tempMin: 20,
-    tempMax: 25,
     humidityMin: 35,
-    humidityMax: 55,
+    humidityMax: 50,
     co2Max: 900,
-    fumesMax: 20,
-    smokeMax: 45,
-  },
-
-  asthma: {
-    name: 'Asthma Mode',
-    icon: '🫁',
-    description: 'More sensitive mode for respiratory comfort.',
-    tempMin: 19,
-    tempMax: 24,
-    humidityMin: 35,
-    humidityMax: 50,
-    co2Max: 750,
     fumesMax: 12,
-    smokeMax: 35,
-  },
-
-  allergies: {
-    name: 'Allergy Mode',
-    icon: '🌿',
-    description: 'Focused on humidity and particle sensitivity.',
-    tempMin: 19,
-    tempMax: 25,
-    humidityMin: 30,
-    humidityMax: 50,
-    co2Max: 850,
-    fumesMax: 15,
-    smokeMax: 40,
+    smokeMax: 30,
   },
 
   adult: {
     name: 'Adult Mode',
     icon: '🏠',
-    description: 'Standard indoor air quality monitoring.',
+    description: 'Standard indoor comfort and air quality monitoring.',
     tempMin: 18,
     tempMax: 26,
     humidityMin: 30,
-    humidityMax: 60,
+    humidityMax: 50,
     co2Max: 1000,
     fumesMax: 25,
     smokeMax: 50,
+  },
+
+  elderly: {
+    name: 'Elderly Mode',
+    icon: '👵',
+    description: 'Comfort-focused limits for elderly people and vulnerable users.',
+    tempMin: 20,
+    tempMax: 24,
+    humidityMin: 35,
+    humidityMax: 50,
+    co2Max: 900,
+    fumesMax: 15,
+    smokeMax: 35,
+  },
+
+  asthma: {
+    name: 'Asthma Mode',
+    icon: '🫁',
+    description: 'Very sensitive mode for respiratory comfort. Lower tolerance for smoke, fumes and dampness.',
+    tempMin: 18,
+    tempMax: 24,
+    humidityMin: 35,
+    humidityMax: 50,
+    co2Max: 800,
+    fumesMax: 10,
+    smokeMax: 25,
+  },
+
+  allergies: {
+    name: 'Allergy Mode',
+    icon: '🌿',
+    description: 'Focused on humidity control, ventilation and reducing mold-trigger conditions.',
+    tempMin: 18,
+    tempMax: 25,
+    humidityMin: 30,
+    humidityMax: 50,
+    co2Max: 850,
+    fumesMax: 12,
+    smokeMax: 30,
   },
 };
