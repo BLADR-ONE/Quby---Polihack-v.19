@@ -24,8 +24,8 @@ export default function HomeScreen() {
     { label: 'Temperature', value: `${reading.temperature}°C`, hint: 'Indoor comfort' },
     { label: 'Humidity', value: `${reading.humidity}%`, hint: 'Air moisture' },
     { label: 'CO2', value: `${reading.co2} ppm`, hint: `Limit ${activeProfileData.co2Max}` },
-    { label: 'Fumes', value: `${reading.fumes}`, hint: `Limit ${activeProfileData.fumesMax}` },
-    { label: 'Smoke', value: `${reading.smoke}`, hint: `Limit ${activeProfileData.smokeMax}` },
+    { label: 'Fumes', value: `${reading.fumes} ppm`, hint: `Limit ${activeProfileData.fumesMax}` },
+    { label: 'Smoke', value: `${reading.smoke} ppm`, hint: `Limit ${activeProfileData.smokeMax}` },
   ];
 
   return (
