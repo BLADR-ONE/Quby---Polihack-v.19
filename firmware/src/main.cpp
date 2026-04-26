@@ -19,6 +19,10 @@ constexpr uint8_t MQ135_PIN = 4;
 constexpr uint8_t MQ2_PIN = 5;
 constexpr uint8_t DHT_PIN = 2;
 constexpr uint8_t DHT_TYPE = DHT22;
+constexpr uint8_t ADXL345_ADDR = 0x53;
+constexpr uint8_t ADXL345_REG_POWER_CTL = 0x2D;
+constexpr uint8_t ADXL345_REG_DATA_FORMAT = 0x31;
+constexpr uint8_t ADXL345_REG_DATAX0 = 0x32;
 
 constexpr uint8_t SCREEN_WIDTH = 128;
 constexpr uint8_t SCREEN_HEIGHT = 64;
@@ -33,12 +37,19 @@ constexpr unsigned long WARMUP_MS = 20000;
 constexpr unsigned long BLINK_INTERVAL_MS = 4500;
 constexpr unsigned long BLINK_DURATION_MS = 120;
 constexpr unsigned long SHORT_PRESS_MAX_MS = 800;
+constexpr unsigned long MULTI_PRESS_GAP_MS = 450;
 constexpr unsigned long WIFI_RECONNECT_MS = 15000;
 constexpr unsigned long WIFI_SCAN_MS = 30000;
 constexpr unsigned long DOCKED_UPLOAD_MS = 240000;
+constexpr unsigned long UNDOCKED_UPLOAD_MS = 900000;
+constexpr unsigned long DOCKED_UPLOAD_RETRY_MS = 10000;
+constexpr unsigned long SHAKE_READ_MS = 120;
+constexpr unsigned long SHAKE_SOUND_COOLDOWN_MS = 2500;
+constexpr unsigned long DEMO_STEP_MS = 1800;
 
 constexpr float AIR_HAPPY_MAX = 1.20f;
 constexpr float AIR_NEUTRAL_MAX = 1.65f;
+constexpr float SHAKE_DELTA_THRESHOLD_G = 0.55f;
 
 constexpr int EYE_Y = 30;
 constexpr int LEFT_EYE_X = 42;
@@ -62,7 +73,8 @@ enum DockedScreen : uint8_t {
   SCREEN_MQ135,
   SCREEN_MQ2,
   SCREEN_DHT,
-  SCREEN_WIFI
+  SCREEN_WIFI,
+  SCREEN_ACCEL
 };
 
 struct SensorSnapshot {
@@ -73,6 +85,10 @@ struct SensorSnapshot {
   bool mq2Detected;
   float temperatureC;
   float humidityPct;
+  float accelXg;
+  float accelYg;
+  float accelZg;
+  bool shakeDetected;
   Mode mode;
   Mood mood;
 };
@@ -82,6 +98,7 @@ DHT dht(DHT_PIN, DHT_TYPE);
 
 Mode currentMode = MODE_DOCKED;
 Mood currentMood = MOOD_NEUTRAL;
+Mood sensedMood = MOOD_NEUTRAL;
 DockedScreen currentDockedScreen = SCREEN_FACE;
 Mood lastRenderedMood = static_cast<Mood>(255);
 bool lastRenderedBlinkState = false;
@@ -96,6 +113,10 @@ bool wifiConfigured = false;
 bool wifiConnectAttempted = false;
 bool snapshotReady = false;
 bool wifiScanRequested = false;
+bool hasUploadedSuccessfully = false;
+bool accelerometerReady = false;
+bool shakeDetected = false;
+bool demoModeEnabled = false;
 wl_status_t lastWifiStatus = WL_IDLE_STATUS;
 
 unsigned long pressStartMs = 0;
@@ -107,7 +128,12 @@ unsigned long nextBlinkMs = 0;
 unsigned long blinkUntilMs = 0;
 unsigned long lastWifiAttemptMs = 0;
 unsigned long lastUploadMs = 0;
+unsigned long lastUploadAttemptMs = 0;
 unsigned long lastWifiScanMs = 0;
+unsigned long lastShakeReadMs = 0;
+unsigned long lastShakeSoundMs = 0;
+unsigned long lastShortPressMs = 0;
+unsigned long lastDemoStepMs = 0;
 
 int mq135Raw = 0;
 float mq135Baseline = 1.0f;
@@ -115,7 +141,14 @@ float mq135Index = 1.0f;
 bool mq2Detected = false;
 float dhtTemperatureC = NAN;
 float dhtHumidity = NAN;
+float accelXg = 0.0f;
+float accelYg = 0.0f;
+float accelZg = 1.0f;
+float accelLastMagnitude = 1.0f;
+float accelShakeDelta = 0.0f;
 int wifiScanCount = -1;
+uint8_t pendingShortPressCount = 0;
+uint8_t demoMoodIndex = 1;
 String wifiTopSsid1;
 String wifiTopSsid2;
 String wifiTopSsid3;
@@ -138,6 +171,74 @@ void applyMoodColor(Mood mood) {
     case MOOD_MAD:
       setColor(255, 0, 0);
       break;
+  }
+}
+
+void playToneBlocking(unsigned int frequency, unsigned long durationMs) {
+  tone(BUZZER_PIN, frequency);
+  delay(durationMs);
+  noTone(BUZZER_PIN);
+}
+
+void playHappySound() {
+  playToneBlocking(660, 100);
+  delay(40);
+  playToneBlocking(880, 100);
+  delay(40);
+  playToneBlocking(1046, 150);
+  delay(60);
+  playToneBlocking(1320, 180);
+}
+
+void playNeutralSound() {
+  playToneBlocking(700, 120);
+  delay(80);
+  playToneBlocking(700, 120);
+}
+
+void playSadSound() {
+  playToneBlocking(600, 180);
+  delay(70);
+  playToneBlocking(440, 220);
+  delay(70);
+  playToneBlocking(330, 300);
+}
+
+void playMoodSound(Mood mood) {
+  switch (mood) {
+    case MOOD_HAPPY:
+      playHappySound();
+      break;
+    case MOOD_NEUTRAL:
+      playNeutralSound();
+      break;
+    case MOOD_MAD:
+      playSadSound();
+      break;
+  }
+}
+
+Mood nextDemoMood() {
+  demoMoodIndex = (demoMoodIndex + 1) % 3;
+  switch (demoMoodIndex) {
+    case 0:
+      return MOOD_HAPPY;
+    case 1:
+      return MOOD_NEUTRAL;
+    default:
+      return MOOD_MAD;
+  }
+}
+
+void setCurrentMood(Mood newMood, bool playSound) {
+  if (currentMood == newMood) {
+    return;
+  }
+
+  currentMood = newMood;
+  infoScreenDirty = true;
+  if (playSound) {
+    playMoodSound(newMood);
   }
 }
 
@@ -241,15 +342,7 @@ void drawInfoHeader(const __FlashStringHelper* title) {
 }
 
 void drawUndockedScreen() {
-  display.clearDisplay();
-  display.setTextColor(SSD1306_WHITE);
-  display.setTextSize(2);
-  display.setCursor(8, 10);
-  display.println(F("Undocked"));
-  display.setTextSize(1);
-  display.setCursor(22, 42);
-  display.println(F("Docked logic paused"));
-  display.display();
+  drawMoodFace(currentMood, blinkActive);
 }
 
 void drawMq135Screen() {
@@ -355,6 +448,38 @@ void drawWifiScreen() {
   display.display();
 }
 
+void drawAccelScreen() {
+  drawInfoHeader(F("ADXL345 Motion"));
+
+  if (!accelerometerReady) {
+    display.setCursor(0, 20);
+    display.println(F("Accel not found"));
+    display.setCursor(0, 36);
+    display.println(F("Check SDA/SCL/VCC"));
+    display.display();
+    return;
+  }
+
+  display.setCursor(0, 16);
+  display.print(F("X: "));
+  display.println(accelXg, 2);
+
+  display.setCursor(0, 28);
+  display.print(F("Y: "));
+  display.println(accelYg, 2);
+
+  display.setCursor(0, 40);
+  display.print(F("Z: "));
+  display.println(accelZg, 2);
+
+  display.setCursor(0, 52);
+  display.print(F("Shake: "));
+  display.print(shakeDetected ? F("YES ") : F("NO  "));
+  display.print(F("M:"));
+  display.println(moodLabel(currentMood));
+  display.display();
+}
+
 int readMqAverage() {
   uint32_t total = 0;
   for (uint8_t i = 0; i < 8; ++i) {
@@ -401,6 +526,78 @@ void readDHT() {
   }
 }
 
+bool writeAccelRegister(uint8_t reg, uint8_t value) {
+  Wire.beginTransmission(ADXL345_ADDR);
+  Wire.write(reg);
+  Wire.write(value);
+  return Wire.endTransmission() == 0;
+}
+
+bool initAccelerometer() {
+  if (!writeAccelRegister(ADXL345_REG_POWER_CTL, 0x00)) {
+    return false;
+  }
+  if (!writeAccelRegister(ADXL345_REG_DATA_FORMAT, 0x08)) {
+    return false;
+  }
+  if (!writeAccelRegister(ADXL345_REG_POWER_CTL, 0x08)) {
+    return false;
+  }
+  return true;
+}
+
+bool readAccelerometerRaw(int16_t& x, int16_t& y, int16_t& z) {
+  Wire.beginTransmission(ADXL345_ADDR);
+  Wire.write(ADXL345_REG_DATAX0);
+  if (Wire.endTransmission(false) != 0) {
+    return false;
+  }
+
+  const uint8_t bytesRequested = 6;
+  const uint8_t bytesRead = Wire.requestFrom(ADXL345_ADDR, bytesRequested);
+  if (bytesRead != bytesRequested) {
+    return false;
+  }
+
+  x = static_cast<int16_t>(Wire.read() | (Wire.read() << 8));
+  y = static_cast<int16_t>(Wire.read() | (Wire.read() << 8));
+  z = static_cast<int16_t>(Wire.read() | (Wire.read() << 8));
+  return true;
+}
+
+void updateAccelerometer() {
+  if (!accelerometerReady) {
+    shakeDetected = false;
+    return;
+  }
+
+  const unsigned long now = millis();
+  if ((now - lastShakeReadMs) < SHAKE_READ_MS) {
+    return;
+  }
+  lastShakeReadMs = now;
+
+  int16_t rawX = 0;
+  int16_t rawY = 0;
+  int16_t rawZ = 0;
+  if (!readAccelerometerRaw(rawX, rawY, rawZ)) {
+    accelerometerReady = false;
+    shakeDetected = false;
+    Serial.println(F("ADXL345 read failed"));
+    return;
+  }
+
+  accelXg = rawX * 0.0039f;
+  accelYg = rawY * 0.0039f;
+  accelZg = rawZ * 0.0039f;
+
+  const float magnitude = sqrtf((accelXg * accelXg) + (accelYg * accelYg) + (accelZg * accelZg));
+  accelShakeDelta = fabsf(magnitude - accelLastMagnitude);
+  accelLastMagnitude = magnitude;
+
+  shakeDetected = accelShakeDelta >= SHAKE_DELTA_THRESHOLD_G;
+}
+
 void buildSnapshot() {
   latestSnapshot.timestampMs = millis();
   latestSnapshot.mq135Raw = mq135Raw;
@@ -409,8 +606,12 @@ void buildSnapshot() {
   latestSnapshot.mq2Detected = mq2Detected;
   latestSnapshot.temperatureC = dhtTemperatureC;
   latestSnapshot.humidityPct = dhtHumidity;
+  latestSnapshot.accelXg = accelXg;
+  latestSnapshot.accelYg = accelYg;
+  latestSnapshot.accelZg = accelZg;
+  latestSnapshot.shakeDetected = shakeDetected;
   latestSnapshot.mode = currentMode;
-  latestSnapshot.mood = currentMood;
+  latestSnapshot.mood = sensedMood;
   snapshotReady = true;
 }
 
@@ -438,6 +639,9 @@ void printMqDebug() {
   Serial.print(mq135Index, 2);
   Serial.print(F(" | mood: "));
   Serial.print(moodLabel(currentMood));
+  if (demoModeEnabled) {
+    Serial.print(F(" (demo)"));
+  }
   Serial.print(F(" | MQ2: "));
   Serial.print(mq2Detected ? F("HIGH") : F("LOW"));
   Serial.print(F(" | Temp: "));
@@ -448,10 +652,23 @@ void printMqDebug() {
   }
   Serial.print(F(" | Hum: "));
   if (isnan(dhtHumidity)) {
-    Serial.println(F("nan"));
+    Serial.print(F("nan"));
   } else {
-    Serial.println(dhtHumidity, 1);
+    Serial.print(dhtHumidity, 1);
   }
+  Serial.print(F(" | Accel: "));
+  if (!accelerometerReady) {
+    Serial.print(F("offline"));
+  } else {
+    Serial.print(accelXg, 2);
+    Serial.print(',');
+    Serial.print(accelYg, 2);
+    Serial.print(',');
+    Serial.print(accelZg, 2);
+    Serial.print(F(" | shake: "));
+    Serial.print(shakeDetected ? F("YES") : F("NO"));
+  }
+  Serial.println();
 }
 
 void printWifiScanResults() {
@@ -557,7 +774,7 @@ void ensureWifiConnected() {
 }
 
 void postDockedSnapshot() {
-  if (!snapshotReady || currentMode != MODE_DOCKED || !wifiConfigured) {
+  if (!snapshotReady || !wifiConfigured) {
     return;
   }
   if (WiFi.status() != WL_CONNECTED) {
@@ -568,12 +785,17 @@ void postDockedSnapshot() {
   }
 
   const unsigned long now = millis();
-  if ((now - lastUploadMs) < DOCKED_UPLOAD_MS) {
+  const unsigned long steadyInterval = currentMode == MODE_DOCKED ? DOCKED_UPLOAD_MS : UNDOCKED_UPLOAD_MS;
+  const unsigned long uploadInterval = hasUploadedSuccessfully ? steadyInterval : DOCKED_UPLOAD_RETRY_MS;
+  if (lastUploadAttemptMs != 0 && (now - lastUploadAttemptMs) < uploadInterval) {
     return;
   }
+  lastUploadAttemptMs = now;
 
   HTTPClient http;
   http.begin(AppConfig::API_URL);
+  http.setConnectTimeout(5000);
+  http.setTimeout(5000);
   http.addHeader("Content-Type", "application/json");
 
   String payload;
@@ -582,7 +804,9 @@ void postDockedSnapshot() {
   payload += AppConfig::API_DEVICE_ID;
   payload += F("\",\"timestamp_ms\":");
   payload += latestSnapshot.timestampMs;
-  payload += F(",\"mode\":\"docked\",\"mood\":\"");
+  payload += F(",\"mode\":\"");
+  payload += (latestSnapshot.mode == MODE_DOCKED ? F("docked") : F("undocked"));
+  payload += F("\",\"mood\":\"");
   payload += moodLabel(latestSnapshot.mood);
   payload += F("\",\"mq135_raw\":");
   payload += latestSnapshot.mq135Raw;
@@ -596,14 +820,37 @@ void postDockedSnapshot() {
   payload += isnan(latestSnapshot.temperatureC) ? F("null") : String(latestSnapshot.temperatureC, 1);
   payload += F(",\"humidity_pct\":");
   payload += isnan(latestSnapshot.humidityPct) ? F("null") : String(latestSnapshot.humidityPct, 1);
+  payload += F(",\"accel_x_g\":");
+  payload += String(latestSnapshot.accelXg, 3);
+  payload += F(",\"accel_y_g\":");
+  payload += String(latestSnapshot.accelYg, 3);
+  payload += F(",\"accel_z_g\":");
+  payload += String(latestSnapshot.accelZg, 3);
+  payload += F(",\"shake_detected\":");
+  payload += (latestSnapshot.shakeDetected ? F("true") : F("false"));
   payload += '}';
+
+  Serial.print(F("Uploading to: "));
+  Serial.println(AppConfig::API_URL);
+  Serial.print(F("Upload payload: "));
+  Serial.println(payload);
 
   const int httpCode = http.POST(payload);
   Serial.print(F("Upload result: "));
   Serial.println(httpCode);
+
+  if (httpCode > 0) {
+    Serial.print(F("Upload response: "));
+    Serial.println(http.getString());
+  } else {
+    Serial.print(F("Upload error: "));
+    Serial.println(http.errorToString(httpCode));
+  }
+
   http.end();
 
   if (httpCode > 0) {
+    hasUploadedSuccessfully = true;
     lastUploadMs = now;
   }
 }
@@ -614,12 +861,10 @@ void enterMode(Mode mode) {
   infoScreenDirty = true;
   drawModeSplash(mode == MODE_DOCKED ? 'D' : 'U');
 
-  if (mode == MODE_UNDOCKED) {
-    setColor(16, 0, 24);
-  } else {
-    currentMood = evaluateDockedMood();
-    applyMoodColor(currentMood);
+  if (!demoModeEnabled) {
+    setCurrentMood(sensedMood, false);
   }
+  applyMoodColor(currentMood);
 
   Serial.print(F("Mode changed to: "));
   Serial.println(mode == MODE_DOCKED ? F("Docked") : F("Undocked"));
@@ -634,11 +879,9 @@ void updateModeButton() {
     longPressHandled = false;
   } else if (!buttonPressed && lastButtonPressed) {
     const unsigned long pressDuration = now - pressStartMs;
-    if (currentMode == MODE_DOCKED &&
-        !longPressHandled &&
-        pressDuration <= SHORT_PRESS_MAX_MS) {
-      currentDockedScreen = static_cast<DockedScreen>((currentDockedScreen + 1) % 5);
-      infoScreenDirty = true;
+    if (!longPressHandled && pressDuration <= SHORT_PRESS_MAX_MS) {
+      ++pendingShortPressCount;
+      lastShortPressMs = now;
     }
     longPressHandled = false;
   }
@@ -649,6 +892,45 @@ void updateModeButton() {
   }
 
   lastButtonPressed = buttonPressed;
+}
+
+void toggleDemoMode() {
+  demoModeEnabled = !demoModeEnabled;
+  infoScreenDirty = true;
+
+  if (demoModeEnabled) {
+    demoMoodIndex = 0;
+    lastDemoStepMs = millis();
+    setCurrentMood(MOOD_HAPPY, true);
+    Serial.println(F("Demo mode: ON"));
+  } else {
+    setCurrentMood(sensedMood, false);
+    Serial.println(F("Demo mode: OFF"));
+  }
+}
+
+void processPendingShortPresses() {
+  if (pendingShortPressCount == 0) {
+    return;
+  }
+
+  const unsigned long now = millis();
+  if ((now - lastShortPressMs) < MULTI_PRESS_GAP_MS) {
+    return;
+  }
+
+  const uint8_t pressCount = pendingShortPressCount;
+  pendingShortPressCount = 0;
+
+  if (pressCount == 3) {
+    toggleDemoMode();
+    return;
+  }
+
+  for (uint8_t i = 0; i < pressCount; ++i) {
+    currentDockedScreen = static_cast<DockedScreen>((currentDockedScreen + 1) % 6);
+  }
+  infoScreenDirty = true;
 }
 
 void updateBlink() {
@@ -676,10 +958,44 @@ void updateDockedSensors() {
   readMQ135();
   readMQ2();
   readDHT();
-  currentMood = evaluateDockedMood();
+  updateAccelerometer();
+  sensedMood = evaluateDockedMood();
+  if (!demoModeEnabled) {
+    setCurrentMood(sensedMood, true);
+  }
   buildSnapshot();
   infoScreenDirty = true;
   printMqDebug();
+}
+
+void updateDemoMode() {
+  if (!demoModeEnabled) {
+    return;
+  }
+
+  const unsigned long now = millis();
+  if ((now - lastDemoStepMs) < DEMO_STEP_MS) {
+    return;
+  }
+
+  lastDemoStepMs = now;
+  setCurrentMood(nextDemoMood(), true);
+}
+
+void handleUndockedShakeSound() {
+  if (currentMode != MODE_UNDOCKED || !shakeDetected) {
+    return;
+  }
+
+  const unsigned long now = millis();
+  if ((now - lastShakeSoundMs) < SHAKE_SOUND_COOLDOWN_MS) {
+    return;
+  }
+
+  lastShakeSoundMs = now;
+  Serial.print(F("Shake detected, playing mood sound: "));
+  Serial.println(moodLabel(currentMood));
+  playMoodSound(currentMood);
 }
 
 void renderCurrentScreen() {
@@ -689,10 +1005,52 @@ void renderCurrentScreen() {
   }
 
   if (currentMode == MODE_UNDOCKED) {
-    if (lastRenderedMode != MODE_UNDOCKED) {
-      drawUndockedScreen();
-      lastRenderedMode = MODE_UNDOCKED;
+    applyMoodColor(currentMood);
+    if (currentDockedScreen == SCREEN_FACE) {
+      if (lastRenderedMode != MODE_UNDOCKED ||
+          lastRenderedDockedScreen != SCREEN_FACE ||
+          currentMood != lastRenderedMood ||
+          blinkActive != lastRenderedBlinkState) {
+        drawUndockedScreen();
+        lastRenderedMood = currentMood;
+        lastRenderedBlinkState = blinkActive;
+        lastRenderedMode = MODE_UNDOCKED;
+        lastRenderedDockedScreen = SCREEN_FACE;
+      }
+      return;
     }
+
+    if (!infoScreenDirty &&
+        lastRenderedMode == MODE_UNDOCKED &&
+        lastRenderedDockedScreen == currentDockedScreen) {
+      return;
+    }
+
+    switch (currentDockedScreen) {
+      case SCREEN_MQ135:
+        drawMq135Screen();
+        break;
+      case SCREEN_MQ2:
+        drawMq2Screen();
+        break;
+      case SCREEN_DHT:
+        drawDhtScreen();
+        break;
+      case SCREEN_WIFI:
+        drawWifiScreen();
+        break;
+      case SCREEN_ACCEL:
+        drawAccelScreen();
+        break;
+      case SCREEN_FACE:
+        break;
+    }
+
+    lastRenderedMode = MODE_UNDOCKED;
+    lastRenderedDockedScreen = currentDockedScreen;
+    lastRenderedBlinkState = blinkActive;
+    lastRenderedMood = currentMood;
+    infoScreenDirty = false;
     return;
   }
 
@@ -729,6 +1087,9 @@ void renderCurrentScreen() {
       break;
     case SCREEN_WIFI:
       drawWifiScreen();
+      break;
+    case SCREEN_ACCEL:
+      drawAccelScreen();
       break;
     case SCREEN_FACE:
       break;
@@ -777,6 +1138,12 @@ void setup() {
   display.display();
 
   dht.begin();
+  accelerometerReady = initAccelerometer();
+  if (accelerometerReady) {
+    Serial.println(F("ADXL345 ready"));
+  } else {
+    Serial.println(F("ADXL345 init failed"));
+  }
 
   WiFi.mode(WIFI_STA);
   WiFi.persistent(false);
@@ -791,6 +1158,7 @@ void setup() {
   mq135Baseline = max(1.0f, static_cast<float>(mq135Raw));
   readMQ2();
   readDHT();
+  updateAccelerometer();
   currentMood = evaluateDockedMood();
   buildSnapshot();
 
@@ -801,6 +1169,8 @@ void setup() {
 
 void loop() {
   updateModeButton();
+  processPendingShortPresses();
+  updateDemoMode();
 
   if (currentMode == MODE_DOCKED) {
     updateDockedSensors();
@@ -808,7 +1178,11 @@ void loop() {
     ensureWifiConnected();
     postDockedSnapshot();
   } else {
-    blinkActive = false;
+    updateDockedSensors();
+    updateBlink();
+    ensureWifiConnected();
+    handleUndockedShakeSound();
+    postDockedSnapshot();
   }
 
   renderCurrentScreen();
