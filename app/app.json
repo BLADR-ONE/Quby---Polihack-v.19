@@ -4,12 +4,12 @@
     "slug": "quby",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo.png",
     "scheme": "quby",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/splash-logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ecfeff"
     },
@@ -19,11 +19,13 @@
     },
     "android": {
       "package": "com.quby.app",
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#ecfeff",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
       "permissions": [
+        "android.permission.INTERNET",
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_CONNECT",
@@ -31,7 +33,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/logo.png"
     },
     "plugins": ["expo-router"],
     "experiments": {

@@ -3,13 +3,20 @@
   PropsWithChildren,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
 import { PROFILES, ProfileKey, QubyProfile } from '@/constants/profiles';
 import { MOCK_READINGS, SensorReading } from '@/data/mock';
+import {
+  notifyForStatus,
+  setupNotifications,
+} from '@/notifications/qubyNotifications';
+import { fetchEspReading } from '@/services/espClient';
 
 type RoomStatus = 'SAFE' | 'WARNING' | 'CRITICAL';
+type ConnectionStatus = 'MOCK' | 'CONNECTING' | 'CONNECTED' | 'ERROR';
 
 type EvaluationResult = {
   alerts: string[];
@@ -23,9 +30,12 @@ type QubyContextType = {
   activeProfileData: QubyProfile;
   alerts: string[];
   bluetoothState: string;
+  connectionStatus: ConnectionStatus;
+  espEndpoint: string;
   historyMode: string;
   reading: SensorReading;
   recommendation: string;
+  setEspEndpoint: (endpoint: string) => void;
   status: RoomStatus;
 };
 
@@ -87,7 +97,16 @@ function evaluateReading(
 
 export function QubyProvider({ children }: PropsWithChildren) {
   const [activeProfile, setActiveProfile] = useState<ProfileKey>('adult');
+  const [connectionStatus, setConnectionStatus] =
+    useState<ConnectionStatus>('MOCK');
+  const [espEndpoint, setEspEndpoint] = useState('');
+  const [espReading, setEspReading] = useState<SensorReading | null>(null);
   const [readingIndex, setReadingIndex] = useState(0);
+  const previousStatus = useRef<RoomStatus | null>(null);
+
+  useEffect(() => {
+    setupNotifications();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -97,9 +116,55 @@ export function QubyProvider({ children }: PropsWithChildren) {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (!espEndpoint.trim()) {
+      setConnectionStatus('MOCK');
+      setEspReading(null);
+      return;
+    }
+
+    let isActive = true;
+
+    async function syncReading() {
+      setConnectionStatus((current) =>
+        current === 'CONNECTED' ? current : 'CONNECTING',
+      );
+
+      const nextReading = await fetchEspReading(espEndpoint);
+
+      if (!isActive) {
+        return;
+      }
+
+      if (nextReading) {
+        setEspReading(nextReading);
+        setConnectionStatus('CONNECTED');
+      } else {
+        setConnectionStatus('ERROR');
+      }
+    }
+
+    syncReading();
+    const interval = setInterval(syncReading, 3500);
+
+    return () => {
+      isActive = false;
+      clearInterval(interval);
+    };
+  }, [espEndpoint]);
+
   const activeProfileData = PROFILES[activeProfile];
-  const reading = MOCK_READINGS[readingIndex];
+  const reading = espReading ?? MOCK_READINGS[readingIndex];
   const result = evaluateReading(reading, activeProfileData);
+
+  useEffect(() => {
+    if (previousStatus.current === result.status) {
+      return;
+    }
+
+    previousStatus.current = result.status;
+    notifyForStatus(result.status, result.alerts);
+  }, [result.status, result.alerts]);
 
   return (
     <QubyContext.Provider
@@ -108,10 +173,20 @@ export function QubyProvider({ children }: PropsWithChildren) {
         setActiveProfile,
         activeProfileData,
         alerts: result.alerts,
-        bluetoothState: 'WI-FI, ESP32 Bluetooth later',
+        bluetoothState:
+          connectionStatus === 'CONNECTED'
+            ? 'Wi-Fi ESP32 connected'
+            : connectionStatus === 'ERROR'
+              ? 'Wi-Fi ESP32 unavailable, using mock data'
+              : connectionStatus === 'CONNECTING'
+                ? 'Connecting to ESP32 over Wi-Fi'
+                : 'Mock data, add ESP32 endpoint in Settings',
+        connectionStatus,
+        espEndpoint,
         historyMode: 'Database TBA',
         reading,
         recommendation: result.recommendation,
+        setEspEndpoint,
         status: result.status,
       }}
     >

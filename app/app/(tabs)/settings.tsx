@@ -1,9 +1,17 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useQuby } from '@/context/QubyContext';
+import { getNormalizedEspEndpoint } from '@/services/espClient';
 
 export default function SettingsScreen() {
-  const { activeProfileData, bluetoothState, historyMode } = useQuby();
+  const {
+    activeProfileData,
+    bluetoothState,
+    connectionStatus,
+    espEndpoint,
+    historyMode,
+    setEspEndpoint,
+  } = useQuby();
 
   return (
     <View style={styles.screen}>
@@ -18,6 +26,23 @@ export default function SettingsScreen() {
       <View style={styles.card}>
         <Text style={styles.label}>Connection source</Text>
         <Text style={styles.value}>{bluetoothState}</Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.label}>ESP32 Wi-Fi endpoint</Text>
+        <TextInput
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          onChangeText={setEspEndpoint}
+          placeholder="192.168.1.42 or http://192.168.1.42/reading"
+          style={styles.input}
+          value={espEndpoint}
+        />
+        <Text style={styles.helperText}>
+          App reads {getNormalizedEspEndpoint(espEndpoint) || '/reading'} every
+          3.5 seconds. Status: {connectionStatus}.
+        </Text>
       </View>
 
       <View style={styles.card}>
@@ -78,6 +103,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     marginTop: 6,
+  },
+  input: {
+    borderColor: '#cbd5e1',
+    borderRadius: 14,
+    borderWidth: 1,
+    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  helperText: {
+    color: '#64748b',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 8,
   },
   noteCard: {
     backgroundColor: '#dbeafe',
